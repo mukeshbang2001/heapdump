@@ -1270,6 +1270,57 @@ definitions:
                   "value": "11.0.0"
                 }]
         after-script: *playwright-debug-on-failure
+    ##
+    ## JFR Performance Test (capture + analyse + regression gate)
+    ##
+    - step: &jfr-perf-test
+        name: JFR Performance Test 📊
+        trigger: manual
+        size: 2x
+        script:
+          - apt-get update -q && apt-get install -y -q jq openssh-client
+          # Stage 1: capture JFR for user_migrate phase
+          - bash perf_v2/01_capture.sh
+              --host "${INSTENV_HOST}"
+              --jira-user "${JIRA_ADMIN_USER:-admin}"
+              --jira-pass "${JIRA_ADMIN_PASS}"
+              --phase user_migrate
+              --output-dir perf_output
+          # Stage 1: capture JFR for project_export phase
+          - bash perf_v2/01_capture.sh
+              --host "${INSTENV_HOST}"
+              --jira-user "${JIRA_ADMIN_USER:-admin}"
+              --jira-pass "${JIRA_ADMIN_PASS}"
+              --phase project_export
+              --output-dir perf_output
+          # Stage 2: extract events from both JFR files
+          - python3 perf_v2/02_extract.py --jfr perf_output/user_migrate.jfr   --out perf_output --app-package com.atlassian
+          - python3 perf_v2/02_extract.py --jfr perf_output/project_export.jfr --out perf_output --app-package com.atlassian
+          # Stage 3: metrics + regression comparison vs committed baselines
+          - |
+            python3 perf_v2/03_metrics.py \
+              --raw perf_output/user_migrate_raw.json \
+              --out perf_output \
+              --baseline perf_v2/baselines/user_migrate_baseline.json \
+              --thresh-cpu 30 --thresh-heap 30 --thresh-gc-pause 50 --thresh-gc-full 0 \
+              --thresh-db-reads 20 --thresh-db-latency 30 --thresh-api-latency 30 \
+              --thresh-blocking 30 --thresh-threads 20 --thresh-exceptions 50 \
+              --fail-on-regression
+          - |
+            python3 perf_v2/03_metrics.py \
+              --raw perf_output/project_export_raw.json \
+              --out perf_output \
+              --baseline perf_v2/baselines/project_export_baseline.json \
+              --thresh-cpu 30 --thresh-heap 30 --thresh-gc-pause 50 --thresh-gc-full 0 \
+              --thresh-db-reads 20 --thresh-db-latency 30 --thresh-api-latency 30 \
+              --thresh-blocking 30 --thresh-threads 20 --thresh-exceptions 50 \
+              --fail-on-regression
+          # Stage 4: generate HTML reports (doesn't affect exit code)
+          - python3 perf_v2/04_html.py --raw perf_output/user_migrate_raw.json   --out perf_output --baseline perf_v2/baselines/user_migrate_baseline.json   || true
+          - python3 perf_v2/04_html.py --raw perf_output/project_export_raw.json --out perf_output --baseline perf_v2/baselines/project_export_baseline.json || true
+        artifacts:
+          - perf_output/**
+
     - step: &trigger-perf-test-if-branch-diverges-from-master-or-develop
         name: Trigger Perf Test if branch diverges from Master/Develop
         trigger: manual
@@ -1557,6 +1608,7 @@ pipelines:
           - step: *perform-blitz
           - step: *test-regression-server
 #      - step: *trigger-perf-test-if-branch-diverges-from-master-or-develop
+      - step: *jfr-perf-test
       - step: *clean-up-cloud
       - step: *perform-release
       - step: *create-merge-back-PRs
