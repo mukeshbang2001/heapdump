@@ -1,0 +1,1816 @@
+image:
+  ## See README
+  name: docker-proxy.services.atlassian.com/atlassian/jira-migration-plugin:cf4f462c14
+  username: dalmeida
+  password: $PIPELINES_JWT_TOKEN
+
+options:
+  docker: true
+  size: 4x
+
+stepDefaults: &stepDefaults
+  caches:
+    - maven
+    - node
+    - docker
+    - cypress
+
+definitions:
+  caches:
+    yarn: $HOME/.cache
+    cypress: $HOME/.cache/Cypress
+    target: jira-migration-plugin/target
+    maven:
+      key:
+        files:
+          - "**/pom.xml"
+      path: ~/.m2/repository
+
+  scripts:
+    playwright-debug-on-failure: &playwright-debug-on-failure
+      - |
+        if [ "$BITBUCKET_EXIT_CODE" -ne 0 ]; then
+          echo "Tests failed! For debugging, see: https://hello.atlassian.net/wiki/x/hdAYkQE"
+        fi
+    setup-deps: &setup-deps |
+      if ! command -v jq &> /dev/null; then
+        apt-get update && apt-get install -y jq
+      fi
+      if [ -n "${BITBUCKET_STEP_TRIGGERER_UUID:-}" ]; then
+        export TRIGGEREDBY=$(curl -s -X GET -g "https://api.bitbucket.org/2.0/users/${BITBUCKET_STEP_TRIGGERER_UUID}" 2>/dev/null | jq -r '.display_name // "Unknown Triggerer"' || echo "Unknown Triggerer")
+      else
+        export TRIGGEREDBY="Unknown Triggerer"
+      fi
+  services:
+    docker:
+      memory: 2048
+    docker-with-more-memory:
+      memory: 4096
+      type: docker
+    mysql:
+      image:
+        name: docker-proxy.services.atlassian.com/atlassian/jira/server/mysql:5.7
+        username: buildeng
+        password: $PIPELINES_JWT_TOKEN
+      memory: 2048
+    mysql8:
+      image:
+        name: docker-proxy.services.atlassian.com/atlassian/jira/server/mysql:8
+        username: buildeng
+        password: $PIPELINES_JWT_TOKEN
+      memory: 2048
+    mysql84:
+      image:
+        name: docker-proxy.services.atlassian.com/atlassian/jira/server/mysql:8.4
+        username: buildeng
+        password: $PIPELINES_JWT_TOKEN
+      memory: 2048
+    mysqlutf8mb4:
+      image:
+        name: docker-proxy.services.atlassian.com/atlassian/jira/server/mysql-utf8mb4:5.7
+        username: buildeng
+        password: $PIPELINES_JWT_TOKEN
+      memory: 2048
+    mssql2017:
+      image:
+        name: docker-proxy.services.atlassian.com/atlassian/jira/server/mssql:2017
+        username: buildeng
+        password: $PIPELINES_JWT_TOKEN
+      memory: 4096
+    mssql2022:
+      image:
+        name: docker-proxy.services.atlassian.com/atlassian/jira/server/mssql:2022
+        username: buildeng
+        password: $PIPELINES_JWT_TOKEN
+      memory: 4096
+    postgres:
+      image:
+        name: docker-proxy.services.atlassian.com/atlassian/jira/server/postgres:9.4
+        username: buildeng
+        password: $PIPELINES_JWT_TOKEN
+      memory: 2048
+    postgres10:
+      image: postgres:10
+      variables:
+        POSTGRES_USER: jira
+        POSTGRES_PASSWORD: jira
+        POSTGRES_INITDB_ARGS: '--encoding=UTF-8 --lc-collate=C --lc-ctype=C'
+    postgres12:
+      image: postgres:12
+      variables:
+        POSTGRES_USER: jira
+        POSTGRES_PASSWORD: jira
+        POSTGRES_INITDB_ARGS: '--encoding=UTF-8 --lc-collate=C --lc-ctype=C'
+    postgres17:
+      image: postgres:17
+      variables:
+        POSTGRES_USER: jira
+        POSTGRES_PASSWORD: jira
+        POSTGRES_INITDB_ARGS: '--encoding=UTF-8 --lc-collate=C --lc-ctype=C'
+    statsd:
+      image:
+        name: docker-proxy.services.atlassian.com/sox/observability/statsd-docker:stable
+        username: na # Can be anything
+        password: $PIPELINES_JWT_TOKEN
+      variables:
+        STATSD_SERVICE_NAME: statsd-sidecar-jira-migration-plugin
+        STATSD_BUSINESS_UNIT: Migration-Platform
+        STATSD_HOSTNAME: global
+        LOG_RAW_METRIC: "true"
+
+  steps:
+    - step: &backend-step-defaults
+        caches:
+          - maven
+        condition:
+          changesets:
+            includePaths:
+              - bitbucket-pipelines.yml
+              - "**/pom.xml"
+              - jira-migration-plugin/**
+              - jira-migration-plugin-util/**
+              - jira-migration-plugin-pre-platform7-compat/**
+              - scripts/**
+              - pom.xml
+    ##
+    ## Main build
+    ##
+    - step: &build-test
+        <<: *backend-step-defaults
+        name: Build 🔧 Test 🍏 (Backend)
+        size: 8x
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - ./scripts/bitbucketBuild.sh
+        artifacts:
+          - jira-migration-plugin/target/surefire-reports/**
+          - jira-migration-plugin/target/pacts/**
+    - step: &run-static-analysis
+        <<: *backend-step-defaults
+        caches: []
+        name: Run static analysis
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - ./scripts/bitbucketDetektScan.sh
+    - step: &ktlint
+        <<: *backend-step-defaults
+        name: ktlint 👮
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - ./scripts/bitbucketKtlint.sh
+    - step: &build-only
+        <<: *backend-step-defaults
+        name: Build 🔧 Package 📦 (Backend)
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - ./scripts/bitbucketBuildOnly.sh -Dkotlin.test.compile.skip=true
+        artifacts:
+          - jira-migration-plugin/target/jira-migration-plugin-*.jar
+          - jira-migration-plugin/target/jira-migration-plugin-*.obr
+          - "**/target/classes/**"
+          - "**/target/kotlin-ic/**"
+    - step: &resolve-dependencies
+        <<: *backend-step-defaults
+        name: Dependency resolution 📬 & Compile 🔨
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - export MAVEN_OPTS="-Xmx6000m -XX:+UseG1GC"
+          - mvn --no-transfer-progress install -P production -DskipTests=true -Dfrontend.skip=true -DskipDetekt=true -Dkotlin.compiler.incremental=true -Dbuildtime.output.log=true
+        artifacts:
+          - "**/target/classes/**"
+          - "**/target/test-classes/**"
+          - "**/target/generated-sources/**"
+          - "**/target/generated-test-sources/**"
+          - "**/target/*.jar"
+    ##
+    ## Split unit test builds
+    ##
+    - step: &unit-test-group-0
+        <<: *backend-step-defaults
+        name: Unit Test 🍏 (group-0)
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - ./scripts/bitbucketUnitTestOnly.sh -Dsurefire.includesFile="$(pwd)/jira-migration-plugin/test/unit-test-group-0.txt" -Djacoco.destFile='${project.build.directory}/jacoco-group-0.exec'
+        artifacts:
+          - "**/target/surefire-reports/*"
+          - "**/target/jacoco*.exec"
+          - "**/target/test-classes/**"
+    - step: &unit-test-group-1
+        <<: *backend-step-defaults
+        name: Unit Test 🍏 (group-1)
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - ./scripts/bitbucketUnitTestOnly.sh -Dsurefire.includesFile="$(pwd)/jira-migration-plugin/test/unit-test-group-1.txt" -Djacoco.destFile='${project.build.directory}/jacoco-group-1.exec'
+        artifacts:
+          - "**/target/surefire-reports/*"
+          - "**/target/jacoco*.exec"
+          - "**/target/test-classes/**"
+    - step: &unit-test-group-2
+        <<: *backend-step-defaults
+        name: Unit Test 🍏 (group-2)
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - ./scripts/bitbucketUnitTestOnly.sh -Dsurefire.includesFile="$(pwd)/jira-migration-plugin/test/unit-test-group-2.txt" -Djacoco.destFile='${project.build.directory}/jacoco-group-2.exec'
+        artifacts:
+          - "**/target/surefire-reports/*"
+          - "**/target/jacoco*.exec"
+          - "**/target/test-classes/**"
+    - step: &unit-test-group-3
+        <<: *backend-step-defaults
+        name: Unit Test 🍏 (group-3)
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - ./scripts/bitbucketUnitTestOnly.sh -Dsurefire.includesFile="$(pwd)/jira-migration-plugin/test/unit-test-group-3.txt" -Djacoco.destFile='${project.build.directory}/jacoco-group-3.exec'
+        artifacts:
+          - "**/target/surefire-reports/*"
+          - "**/target/jacoco*.exec"
+          - "**/target/test-classes/**"
+    - step: &unit-test-group-other
+        <<: *backend-step-defaults
+        name: Unit Test 🍏 (group-other)
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - ./scripts/bitbucketUnitTestOnly.sh -Dsurefire.excludesFile="$(pwd)/jira-migration-plugin/test/unit-test-group-exclusions.txt" -Djacoco.destFile='${project.build.directory}/jacoco-group-other.exec'
+        artifacts:
+          - "**/target/surefire-reports/*"
+          - "**/target/jacoco*.exec"
+          - "**/target/test-classes/**"
+
+    ##
+    ## Sonar
+    ##
+    - step: &sonar
+        <<: *backend-step-defaults
+        name: Sonar 🎯
+        size: 8x
+        clone:
+          strategy: clone
+        services:
+          - docker-with-more-memory
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - apt-get update
+          - apt-get install -y jq
+          - # Ryuk (cleanup sidecar) needs to be turned off since Bitbucket Pipelines does not allow starting privileged containers
+            # see https://www.testcontainers.org/supported_docker_environment/continuous_integration/bitbucket_pipelines/
+            export TESTCONTAINERS_RYUK_DISABLED=true
+          - ./scripts/bitbucketSonar.sh
+    - step: &sonar-report
+        <<: *backend-step-defaults
+        name: Sonar 🎯
+        clone:
+          strategy: clone
+          depth: full
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - *setup-deps
+          - ./scripts/bitbucketSonarReport.sh
+
+    ##
+    ## Plugin release:
+    ##
+    - step: &perform-release
+        name: Create Release Version 🚢
+        trigger: manual
+        size: 8x
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - # Ryuk (cleanup sidecar) needs to be turned off since Bitbucket Pipelines does not allow starting privileged containers
+            # see https://www.testcontainers.org/supported_docker_environment/continuous_integration/bitbucket_pipelines/
+            export TESTCONTAINERS_RYUK_DISABLED=true
+          - ./scripts/bitbucketRelease.sh
+        artifacts:
+          - jira-migration-plugin/target/jira-migration-plugin-*.jar
+          - jira-migration-plugin/target/jira-migration-plugin-*.obr
+
+    - step: &create-merge-back-PRs
+        name: Merge back to Develop and Master
+        size: 8x
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - apt-get update
+          - apt-get install -y jq
+          - # Ryuk (cleanup sidecar) needs to be turned off since Bitbucket Pipelines does not allow starting privileged containers
+            # see https://www.testcontainers.org/supported_docker_environment/continuous_integration/bitbucket_pipelines/
+            export TESTCONTAINERS_RYUK_DISABLED=true
+          - ./scripts/bitbucketMergePR.sh
+    ##
+    ## Release plugin for particular customer
+    ##
+    - step: &perform-custom-release
+        name: Create Custom Release Version
+        trigger: manual
+        size: 8x
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - apt-get update
+          - apt-get install -y xmlstarlet
+          - # Ryuk (cleanup sidecar) needs to be turned off since Bitbucket Pipelines does not allow starting privileged containers
+            # see https://www.testcontainers.org/supported_docker_environment/continuous_integration/bitbucket_pipelines/
+            export TESTCONTAINERS_RYUK_DISABLED=true
+          - ./scripts/bitbucketCustomRelease.sh $CUSTOMER_NAME "$CUSTOM_RELEASE_REASON" "${BASE_VERSION:-}"
+        artifacts:
+          - jira-migration-plugin-*.jar
+          - jira-migration-plugin-*.obr
+    ##
+    ## Publish plugin onto Public Maven Repo
+    ##
+    - step: &publish-custom-release-to-maven
+        name: Publish Custom Release Version To Public Maven
+        trigger: manual
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - apt-get update
+          - apt-get install -y xmlstarlet
+          - # Ryuk (cleanup sidecar) needs to be turned off since Bitbucket Pipelines does not allow starting privileged containers
+            # see https://www.testcontainers.org/supported_docker_environment/continuous_integration/bitbucket_pipelines/
+            export TESTCONTAINERS_RYUK_DISABLED=true
+          - ./scripts/bitbucketPublishCustomRelease.sh $CUSTOMER_NAME "${BASE_VERSION:-}"
+    ##
+    ## Build the jar and install it to standing instances
+    ## http://10.9.31.146:8080 instance is used for internal go/jcma-ui tool
+    ##
+    - step: &install-snapshot-jar-to-server-instance
+        <<: *stepDefaults
+        name: Build jar and install in internal server instances
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - ./scripts/buildSnapshotVersionWithHash.sh
+          - ./scripts/installBuildJarToJiraInstance.sh http://10.9.31.146:8080
+    - step: &install-snapshot-jar-to-server-instance-manual
+        <<: *install-snapshot-jar-to-server-instance
+        trigger: manual
+    ##
+    ## Unit Tests
+    ##
+    - step: &unit-tests
+        <<: *backend-step-defaults
+        name: Unit Tests 🍏
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - ./scripts/bitbucketUnitTest.sh -Djacoco.destFile='${project.build.directory}/jacoco-unit-tests.exec'
+        artifacts:
+          - "**/target/surefire-reports/*"
+          - "**/target/jacoco*.exec"
+          - "**/target/classes/**"
+    ##
+    ## 9 database integration builds (3 db vendors * 3 Jira versions):
+    ##
+    - step: &database-it-postgres-jira-85
+        <<: *backend-step-defaults
+        name: Postgres 🐘 Jira 8.5 IT
+        services:
+          - postgres
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - ./scripts/bitbucketDatabaseITOnly.sh postgresql 8.5 1.8
+        artifacts:
+          - jira-migration-plugin/target/group-jira-integration/tomcat85x/surefire-reports/*
+          - jira-migration-plugin/target/single/home/log/*
+    - step: &database-it-postgres-jira-820
+        <<: *backend-step-defaults
+        name: Postgres 🐘 Jira 8.20 IT
+        services:
+          - postgres10
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - ./scripts/bitbucketDatabaseITOnly.sh postgresql 8.20 1.8
+        artifacts:
+          - jira-migration-plugin/target/group-jira-integration/tomcat85x/surefire-reports/*
+          - jira-migration-plugin/target/single/home/log/*
+    - step: &database-it-postgres-jira-9.12.19
+        <<: *backend-step-defaults
+        name: Postgres 🐘 Jira 9.12.19 IT
+        services:
+          - postgres12
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - ./scripts/bitbucketDatabaseITOnly.sh postgresql 9.12.19 17
+        artifacts:
+          - jira-migration-plugin/target/group-jira-integration/tomcat85x/surefire-reports/*
+          - jira-migration-plugin/target/single/home/log/*
+    - step: &database-it-postgres-jira-10.4.1
+        <<: *backend-step-defaults
+        name: Postgres 🐘 Jira 10.4.1 IT
+        services:
+          - postgres12
+          - statsd
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - ./scripts/bitbucketDatabaseITOnly.sh postgresql 10.4.1 17 -Dbitbucket.step.name='Postgres_Jira_10.4.1_IT' -Dbitbucket.branch=$BITBUCKET_BRANCH
+        artifacts:
+          - jira-migration-plugin/target/group-jira-integration/tomcat85x/surefire-reports/*
+          - jira-migration-plugin/target/single/home/log/*
+    - step: &database-it-postgres-jira-11.0.0
+        <<: *backend-step-defaults
+        name: Postgres 🐘 Jira 11.0.0 IT
+        services:
+          - postgres17
+          - statsd
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - ./scripts/bitbucketDatabaseITOnly.sh postgresql 11.0.0 21 -Dbitbucket.step.name='Postgres_Jira_11.0.0_IT' -Dbitbucket.branch=$BITBUCKET_BRANCH
+        artifacts:
+          - jira-migration-plugin/target/group-jira-integration/tomcat85x/surefire-reports/*
+          - jira-migration-plugin/target/single/home/log/*
+    - step: &database-it-mysql-jira-85
+        <<: *backend-step-defaults
+        name: MySQL 🐬 Jira 8.5 IT
+        services:
+          - mysql
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - ./scripts/bitbucketDatabaseITOnly.sh mysql 8.5 1.8 -DmysqlDatabaseType=mysql
+        artifacts:
+          - jira-migration-plugin/target/group-jira-integration/tomcat85x/surefire-reports/*
+          - jira-migration-plugin/target/single/home/log/*
+    - step: &database-it-mysql-jira-820
+        <<: *backend-step-defaults
+        name: MySQL 🐬 Jira 8.20 IT
+        services:
+          - mysqlutf8mb4
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - ./scripts/bitbucketDatabaseITOnly.sh mysql 8.20 1.8 -DmysqlDatabaseType=mysql57
+        artifacts:
+          - jira-migration-plugin/target/group-jira-integration/tomcat85x/surefire-reports/*
+          - jira-migration-plugin/target/single/home/log/*
+    - step: &database-it-mysql-jira-9.12.19
+        <<: *backend-step-defaults
+        name: MySQL 🐬 Jira 9.12.19 IT
+        services:
+          - mysql8
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - ./scripts/bitbucketDatabaseITOnly.sh mysql 9.12.19 17 -DmysqlDatabaseType=mysql8
+        artifacts:
+          - jira-migration-plugin/target/group-jira-integration/tomcat85x/surefire-reports/*
+          - jira-migration-plugin/target/single/home/log/*
+    # Base step template for MySQL 8.0 (Jira 10.4.1) IT group steps
+    - step: &mysql8-it-group-base
+        <<: *backend-step-defaults
+        services: [mysql8, statsd]
+        artifacts: &mysql-it-artifacts
+          - jira-migration-plugin/target/group-jira-integration/tomcat85x/surefire-reports/*
+          - jira-migration-plugin/target/single/home/log/*
+          - jira-migration-plugin/target/it-test-timings.csv
+    # Base step template for MySQL 8.4 (Jira 11.0.0) IT group steps
+    - step: &mysql84-it-group-base
+        <<: *backend-step-defaults
+        services: [mysql84, statsd]
+        artifacts: *mysql-it-artifacts
+    - step: &database-it-mysql-jira-10.4.1-group-0
+        <<: *mysql8-it-group-base
+        name: MySQL 🐬 Jira 10.4.1 IT — group-0 (configItems + versionSpecific + correction)
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - ./scripts/bitbucketDatabaseITOnly.sh mysql 10.4.1 17 -DmysqlDatabaseType=mysql8 "-Dit.tests.include=it/com/atlassian/jira/migration/PreMigrationReportsIntegrationTest.java,it/com/atlassian/jira/migration/PreMigrationReportsIntegrationVersionSpecificTest.java,it/com/atlassian/jira/migration/PostMigrationReportsIntegrationVersionSpecificTest.java,it/com/atlassian/jira/migration/AutomaticDataCorrectionIntegrationTest.java,it/com/atlassian/jira/migration/AdvancedRoadmapsIntegrationTest.java" -Dbitbucket.step.name='MySQL_Jira_10.4.1_IT_group0' -Dbitbucket.branch=$BITBUCKET_BRANCH
+    - step: &database-it-mysql-jira-10.4.1-group-1
+        <<: *mysql8-it-group-base
+        name: MySQL 🐬 Jira 10.4.1 IT — group-1 (summary + postMigration)
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - ./scripts/bitbucketDatabaseITOnly.sh mysql 10.4.1 17 -DmysqlDatabaseType=mysql8 "-Dit.tests.include=it/com/atlassian/jira/migration/PreMigrationSummaryReportsIntegrationTest.java,it/com/atlassian/jira/migration/PostMigrationReportsIntegrationTest.java" -Dbitbucket.step.name='MySQL_Jira_10.4.1_IT_group1' -Dbitbucket.branch=$BITBUCKET_BRANCH
+    - step: &database-it-mysql-jira-10.4.1-group-2
+        <<: *mysql8-it-group-base
+        name: MySQL 🐬 Jira 10.4.1 IT — group-2 (usersGroups + extraction + export)
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - ./scripts/bitbucketDatabaseITOnly.sh mysql 10.4.1 17 -DmysqlDatabaseType=mysql8 "-Dit.tests.include=it/com/atlassian/jira/migration/PreMigrationUsersGroupsReportsIntegrationTest.java,it/com/atlassian/jira/migration/ProjectExtractionIntegrationTest.java,it/com/atlassian/jira/migration/ProjectExportDataIntegrationTest.java" -Dbitbucket.step.name='MySQL_Jira_10.4.1_IT_group2' -Dbitbucket.branch=$BITBUCKET_BRANCH
+    - step: &database-it-mysql-jira-11.0.0-group-0
+        <<: *mysql84-it-group-base
+        name: MySQL 🐬 Jira 11.0.0 IT — group-0 (configItems + versionSpecific + correction)
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - ./scripts/bitbucketDatabaseITOnly.sh mysql 11.0.0 21 -DmysqlDatabaseType=mysql8 "-Dit.tests.include=it/com/atlassian/jira/migration/PreMigrationReportsIntegrationTest.java,it/com/atlassian/jira/migration/PreMigrationReportsIntegrationVersionSpecificTest.java,it/com/atlassian/jira/migration/PostMigrationReportsIntegrationVersionSpecificTest.java,it/com/atlassian/jira/migration/AutomaticDataCorrectionIntegrationTest.java,it/com/atlassian/jira/migration/AdvancedRoadmapsIntegrationTest.java" -Dbitbucket.step.name='MySQL_Jira_11.0.0_IT_group0' -Dbitbucket.branch=$BITBUCKET_BRANCH
+    - step: &database-it-mysql-jira-11.0.0-group-1
+        <<: *mysql84-it-group-base
+        name: MySQL 🐬 Jira 11.0.0 IT — group-1 (summary + postMigration)
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - ./scripts/bitbucketDatabaseITOnly.sh mysql 11.0.0 21 -DmysqlDatabaseType=mysql8 "-Dit.tests.include=it/com/atlassian/jira/migration/PreMigrationSummaryReportsIntegrationTest.java,it/com/atlassian/jira/migration/PostMigrationReportsIntegrationTest.java" -Dbitbucket.step.name='MySQL_Jira_11.0.0_IT_group1' -Dbitbucket.branch=$BITBUCKET_BRANCH
+    - step: &database-it-mysql-jira-11.0.0-group-2
+        <<: *mysql84-it-group-base
+        name: MySQL 🐬 Jira 11.0.0 IT — group-2 (usersGroups + extraction + export)
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - ./scripts/bitbucketDatabaseITOnly.sh mysql 11.0.0 21 -DmysqlDatabaseType=mysql8 "-Dit.tests.include=it/com/atlassian/jira/migration/PreMigrationUsersGroupsReportsIntegrationTest.java,it/com/atlassian/jira/migration/ProjectExtractionIntegrationTest.java,it/com/atlassian/jira/migration/ProjectExportDataIntegrationTest.java" -Dbitbucket.step.name='MySQL_Jira_11.0.0_IT_group2' -Dbitbucket.branch=$BITBUCKET_BRANCH
+    - step: &database-it-mssql-jira-85
+        <<: *backend-step-defaults
+        name: SQL Server 🌐 Jira 8.5 IT
+        services:
+          - mssql2017
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - ./scripts/bitbucketDatabaseITOnly.sh mssql 8.5 1.8
+        artifacts:
+          - jira-migration-plugin/target/group-jira-integration/tomcat85x/surefire-reports/*
+          - jira-migration-plugin/target/single/home/log/*
+    - step: &database-it-mssql-jira-820
+        <<: *backend-step-defaults
+        name: SQL Server 🌐 Jira 8.20 IT
+        services:
+          - mssql2017
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - ./scripts/bitbucketDatabaseITOnly.sh mssql 8.20 1.8
+        artifacts:
+          - jira-migration-plugin/target/group-jira-integration/tomcat85x/surefire-reports/*
+          - jira-migration-plugin/target/single/home/log/*
+    - step: &database-it-mssql-jira-9.12.19
+        <<: *backend-step-defaults
+        name: SQL Server 🌐 Jira 9.12.19 IT
+        services:
+          - mssql2017
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - ./scripts/bitbucketDatabaseITOnly.sh mssql 9.12.19 17
+        artifacts:
+          - jira-migration-plugin/target/group-jira-integration/tomcat85x/surefire-reports/*
+          - jira-migration-plugin/target/single/home/log/*
+    - step: &database-it-mssql-jira-10.4.1
+        <<: *backend-step-defaults
+        name: SQL Server 🌐 Jira 10.4.1 IT
+        services:
+          - mssql2017
+          - statsd
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - ./scripts/bitbucketDatabaseITOnly.sh mssql 10.4.1 17 -Dbitbucket.step.name='SQL_Server_Jira_10.4.1_IT' -Dbitbucket.branch=$BITBUCKET_BRANCH
+        artifacts:
+          - jira-migration-plugin/target/group-jira-integration/tomcat85x/surefire-reports/*
+          - jira-migration-plugin/target/single/home/log/*
+    - step: &database-it-mssql-jira-11.0.0
+        <<: *backend-step-defaults
+        name: SQL Server 🌐 Jira 11.0.0 IT
+        services:
+          - mssql2022
+          - statsd
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - ./scripts/bitbucketDatabaseITOnly.sh mssql 11.0.0 21 -Dbitbucket.step.name='SQL_Server_Jira_11.0.0_IT' -Dbitbucket.branch=$BITBUCKET_BRANCH
+        artifacts:
+          - jira-migration-plugin/target/group-jira-integration/tomcat85x/surefire-reports/*
+          - jira-migration-plugin/target/single/home/log/*
+    #
+    # * DB agnostic integration tests
+    #
+    - step: &default-integration-test
+        <<: *backend-step-defaults
+        name: Default Integration Tests 🧽
+        services:
+          - docker-with-more-memory
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - |
+            # Ryuk (cleanup sidecar) needs to be turned off since Bitbucket Pipelines does not allow starting privileged containers
+            # see https://www.testcontainers.org/supported_docker_environment/continuous_integration/bitbucket_pipelines/
+            export TESTCONTAINERS_RYUK_DISABLED=true
+          - ./scripts/bitbucketIntegrationTest.sh
+        artifacts:
+          - jira-migration-plugin/target/failsafe-reports/**
+    - step: &integration-test-group-0
+        <<: *backend-step-defaults
+        name: Integration Tests 🧽 (Group 0)
+        services:
+          - docker-with-more-memory
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - |
+            # Ryuk (cleanup sidecar) needs to be turned off since Bitbucket Pipelines does not allow starting privileged containers
+            # see https://www.testcontainers.org/supported_docker_environment/continuous_integration/bitbucket_pipelines/
+            export TESTCONTAINERS_RYUK_DISABLED=true
+          - ./scripts/bitbucketIntegrationTestOnly.sh -Dintegration-test.databases.skip=true -Djacoco.destFile='${project.build.directory}/jacoco-IT-group-0.exec'
+        artifacts:
+          - jira-migration-plugin/target/failsafe-reports/**
+          - jira-migration-plugin/target/jacoco*.exec
+          - jira-migration-plugin/target/test-classes/**
+    - step: &integration-test-group-1
+        <<: *backend-step-defaults
+        name: Integration Tests 🧽 (Group 1)
+        services:
+          - docker-with-more-memory
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - |
+            # Ryuk (cleanup sidecar) needs to be turned off since Bitbucket Pipelines does not allow starting privileged containers
+            # see https://www.testcontainers.org/supported_docker_environment/continuous_integration/bitbucket_pipelines/
+            export TESTCONTAINERS_RYUK_DISABLED=true
+          - ./scripts/bitbucketIntegrationTestOnly.sh -Dintegration-test.kotlin.skip=true -Djacoco.destFile='${project.build.directory}/jacoco-IT-group-1.exec'
+        artifacts:
+          - jira-migration-plugin/target/failsafe-reports/**
+          - jira-migration-plugin/target/jacoco*.exec
+          - jira-migration-plugin/target/test-classes/**
+    - step: &app-migration-end-to-end-test-non-blocking
+        name: Run app migration E2E test
+        script:
+          - pipe: atlassian/trigger-pipeline:5.9.0
+            variables:
+              BITBUCKET_ACCESS_TOKEN: $E2E_TEST_PIPELINE_BITBUCKET_ACCESS_TOKEN
+              REPOSITORY: "ams-e2e-test"
+              CUSTOM_PIPELINE_NAME: "E2E-test-from-JCMA-custom-branch"
+              PIPELINE_VARIABLES: >
+                [{
+                  "key": "JCMA_BRANCH_NAME",
+                  "value": $BITBUCKET_BRANCH
+                },
+                {
+                  "key": "PR_API_URL",
+                  "value": https://api.bitbucket.org/2.0/repositories/$BITBUCKET_REPO_FULL_NAME/pullrequests/$BITBUCKET_PR_ID
+                },
+                {
+                  "key": "INVOKING_CMA_BUILD_NUMBER",
+                  "value": $BITBUCKET_BUILD_NUMBER
+                }]
+    - step: &download-stag-jar
+        name: Create Staging Patched jar 🩹
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - git apply jcma-connect-to-staging-1_0.patch
+          - export MAVEN_OPTS="-Xmx4096m -Xms4096m"
+          - mvn clean package -P production -DskipTests=true -Dkotlin.test.compile.skip=true -Ddetekt.skip=true -Dbuildtime.output.log=true
+        artifacts:
+          - jira-migration-plugin/target/jira-migration-plugin-*SNAPSHOT.jar
+          - jira-migration-plugin/target/jira-migration-plugin-*SNAPSHOT.obr
+    - step: &download-prod-jar
+        name: Create Prod jar 🏭
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - export MAVEN_OPTS="-Xmx4096m -Xms4096m"
+          - mvn clean package -P production -DskipTests=true -Dkotlin.test.compile.skip=true -Ddetekt.skip=true -Dbuildtime.output.log=true
+        artifacts:
+          - jira-migration-plugin/target/jira-migration-plugin-*SNAPSHOT.jar
+          - jira-migration-plugin/target/jira-migration-plugin-*SNAPSHOT.obr
+    - step: &start-jar-creation
+        name: Create Jars 📦
+        trigger: manual
+        script:
+          - echo "Jar Creation Started"
+    - step: &create-release-notes
+        name: Create release notes in confluence
+        size: 2x
+        clone:
+          depth: full
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - pipe: docker://docker.atl-paas.net/atlassian/migrations-release-page:latest
+            variables:
+              SPACE_KEY: $RELEASE_DOC_SPACE_KEY
+              PARENT_PAGE_ID: $RELEASE_DOC_PARENT_PAGE_ID
+              CONFLUENCE_EMAIL: $RELEASE_DOC_CONFLUENCE_EMAIL
+              CONFLUENCE_API_KEY: $RELEASE_DOC_CONFLUENCE_API_KEY
+              BITBUCKET_RELEASE_PAGE_REPO_TOKEN: $BITBUCKET_RELEASE_PAGE_REPO_TOKEN
+              TEMPLATE_PAGE_ID: $RELEASE_DOC_TEMPLATE_PAGE_ID
+              PR_BRANCHES: ["develop"]
+              TABLE_ID: $RELEASE_DOC_CONFLUENCE_TABLE_ID
+              PREVIOUS_RELEASE_BRANCH: $PREVIOUS_RELEASE_BRANCH
+          - echo $(cat migrations-release-result.txt)
+    - step: &invalidate-pipeline-target-cache
+        name: Invalidate Pipeline's target cache
+        script:
+          - pipe: atlassian/bitbucket-clear-cache:3.5.0
+            variables:
+              BITBUCKET_ACCESS_TOKEN: $JCMA_CLEAR_CACHE_BITBUCKET_ACCESS_TOKEN
+              CACHES: ["target"]
+    ##
+    ##Automating the release version update
+    ##
+    - step: &create-jcma-version-on-jac
+        size: 2x
+        name: Create JCMA version on JAC
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - ./jira-migration-plugin/bin/createJcmaVersionOnJac.sh $RELEASE_VERSION $RELEASE_DESCRIPTION $RELEASE_DATE_IN_YYYYMMDD
+    - step: &create-jcma-version-on-gsac
+        size: 2x
+        name: Create JCMA version on GSAC
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - ./jira-migration-plugin/bin/createJcmaVersionOnGsac.sh $RELEASE_VERSION $RELEASE_DESCRIPTION $RELEASE_DATE_IN_YYYYMMDD
+    - step: &yarn-install
+        size: 2x
+        name: Yarn Install and Push
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - ./scripts/bitbucketYarnInstall.sh
+    - step: &cancel-previous-commit-pipelines
+        size: 2x
+        name: Cancel previous commit pipelines
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - node ./scripts/cancel-previous-pipelines.js
+    - step: &create-release-branch
+        name: Create Release Branch
+        script:
+          - echo "Creating release branch for $RELEASE_NAME"
+          - git fetch --all
+          - git checkout -b "release/$RELEASE_NAME" origin/develop
+          - git push origin "release/$RELEASE_NAME"
+    - step: &perform-blitz
+        name: Blitz Setup
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - cd scripts && yarn install --immutable && cd ..
+          - echo "Setting up Blitz Instenv"
+          - node ./scripts/blitz/blitzSetUp.js jira-migration-plugin/target/jira-migration-plugin-*SNAPSHOT.obr
+          - echo "Weekly Blitz Template - https://hello.atlassian.net/wiki/spaces/CT5/pages/4545031776/JCMA+P0+Blitz+Testing+-+Release+Version"
+          - echo "Monthly Blitz Template - https://hello.atlassian.net/wiki/spaces/CT5/pages/2743649638/JCMA+Monthly+Release+Version+-+Consolidated+test+suite+and+Blitz+responsibilities+Template"
+        artifacts:
+          download: true
+    - step: &test-regression-server
+        size: 2x
+        name: Run test on E2E server
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - cd scripts && yarn install --immutable && cd ..
+          - node ./scripts/blitz/bitbucketRegressionServerTest.js jira-migration-plugin/target/jira-migration-plugin-*SNAPSHOT.obr
+        artifacts:
+          download: true
+    - step: &clean-up-cloud
+        size: 2x
+        name: Cleaning up Cloud site
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - cd scripts && yarn install --immutable && cd ..
+          - node ./scripts/blitz/cleanUpCloud.js
+        allow-failure: true
+    - step: &private-release
+        name: Private Release(Manual)
+        trigger: manual
+        script:
+          - echo "Private release for $RELEASE_NAME"
+          - echo "Update the jar from artifacts of step 'Create Release Version'"
+          - echo "Upload the jar to marketplace following steps on https://hello.atlassian.net/wiki/spaces/CT5/pages/1153323354/Releasing+JCMA+and+CCMA+to+Marketplace"
+    - step: &public-release
+        name: Public Release(Manual)
+        trigger: manual
+        script:
+          - echo "Public release for $RELEASE_NAME"
+          - echo "Mark the release from previous steps as public"
+    - step: &run-JAC-and-GSAC-update-pipeline
+        name: Trigger JAC and GSAC update pipeline(Manual)
+        trigger: manual
+        script:
+          - echo "Follow instructions on page https://hello.atlassian.net/wiki/spaces/~712020659c942a9c8842bbbadc09fba0871f84/pages/3683830394/Using+the+script+for+automating+the+release+version+update+on+JAC+jira.atlassian.com+and+GSAC+getsupport.atlassian.com+portals to complete the step"
+    - step: &run-playwright-integration-tests
+        name: Run UI Integration Tests with Playwright (Jira 9)
+        script:
+          - pipe: atlassian/trigger-pipeline:5.9.0
+            variables:
+              WAIT: $PLAYWRIGHT_INTEGRATION_TESTS_BLOCKING_ENABLED
+              WAIT_MAX_TIMEOUT: "3600"
+              BITBUCKET_ACCESS_TOKEN: $CMA_AUTOMATION_REPO_ACCESS_TOKEN
+              REPOSITORY: "cma-automations"
+              CUSTOM_PIPELINE_NAME: "jcma-integration-tests"
+              PIPELINE_VARIABLES: >
+                [{
+                  "key": "CMA_BRANCH_NAME",
+                  "value": $BITBUCKET_BRANCH
+                },
+                {
+                  "key": "JDK_VERSION",
+                  "value": "21"
+                }]
+        after-script: *playwright-debug-on-failure
+    - step: &run-playwright-blitz-tests
+        name: Run Blitz Tests with Playwright (Jira 9)
+        script:
+          - pipe: atlassian/trigger-pipeline:5.9.0
+            variables:
+              WAIT: $PLAYWRIGHT_BLITZ_TESTS_BLOCKING_ENABLED
+              WAIT_MAX_TIMEOUT: "3600"
+              BITBUCKET_ACCESS_TOKEN: $CMA_AUTOMATION_REPO_ACCESS_TOKEN
+              REPOSITORY: "cma-automations"
+              CUSTOM_PIPELINE_NAME: "jcma-blitz-tests"
+              PIPELINE_VARIABLES: >
+                [{
+                  "key": "CMA_BRANCH_NAME",
+                  "value": $BITBUCKET_BRANCH
+                },
+                {
+                  "key": "JDK_VERSION",
+                  "value": "21"
+                }]
+        after-script: *playwright-debug-on-failure
+    - step: &run-playwright-preflight-tests
+        name: Run Preflight Tests with Playwright (Jira 9)
+        script:
+          - pipe: atlassian/trigger-pipeline:5.9.0
+            variables:
+              WAIT: $PLAYWRIGHT_PREFLIGHT_TESTS_BLOCKING_ENABLED
+              WAIT_MAX_TIMEOUT: "3600"
+              BITBUCKET_ACCESS_TOKEN: $CMA_AUTOMATION_REPO_ACCESS_TOKEN
+              REPOSITORY: "cma-automations"
+              CUSTOM_PIPELINE_NAME: "jcma-preflight-tests"
+              PIPELINE_VARIABLES: >
+                [{
+                  "key": "CMA_BRANCH_NAME",
+                  "value": $BITBUCKET_BRANCH
+                },
+                {
+                  "key": "JDK_VERSION",
+                  "value": "21"
+                }]
+        after-script: *playwright-debug-on-failure
+    - step: &run-playwright-backward-compatibility-tests
+        name: Run Backward Compatibility Tests with Playwright (Jira 9)
+        script:
+          - pipe: atlassian/trigger-pipeline:5.9.0
+            variables:
+              WAIT: $PLAYWRIGHT_BACKWARD_COMPATIBILITY_TESTS_BLOCKING_ENABLED
+              WAIT_MAX_TIMEOUT: "3600"
+              BITBUCKET_ACCESS_TOKEN: $CMA_AUTOMATION_REPO_ACCESS_TOKEN
+              REPOSITORY: "cma-automations"
+              CUSTOM_PIPELINE_NAME: "jcma-backward-compatibility-tests"
+              PIPELINE_VARIABLES: >
+                [{
+                  "key": "CMA_BRANCH_NAME",
+                  "value": $BITBUCKET_BRANCH
+                },
+                {
+                  "key": "JDK_VERSION",
+                  "value": "21"
+                }]
+        after-script: *playwright-debug-on-failure
+    # --- Jira 8 version-specific Playwright steps ---
+    - step: &run-playwright-integration-tests-jira8
+        name: Run UI Integration Tests with Playwright (Jira 8)
+        script:
+          - pipe: atlassian/trigger-pipeline:5.9.0
+            variables:
+              WAIT: $PLAYWRIGHT_INTEGRATION_TESTS_BLOCKING_ENABLED
+              WAIT_MAX_TIMEOUT: "3600"
+              BITBUCKET_ACCESS_TOKEN: $CMA_AUTOMATION_REPO_ACCESS_TOKEN
+              REPOSITORY: "cma-automations"
+              CUSTOM_PIPELINE_NAME: "jcma-integration-tests"
+              PIPELINE_VARIABLES: >
+                [{
+                  "key": "CMA_BRANCH_NAME",
+                  "value": $BITBUCKET_BRANCH
+                },
+                {
+                  "key": "JDK_VERSION",
+                  "value": "21"
+                },
+                {
+                  "key": "JIRA_VERSION",
+                  "value": "8.20.28"
+                }]
+        after-script: *playwright-debug-on-failure
+    - step: &run-playwright-blitz-tests-jira8
+        name: Run Blitz Tests with Playwright (Jira 8)
+        script:
+          - pipe: atlassian/trigger-pipeline:5.9.0
+            variables:
+              WAIT: $PLAYWRIGHT_BLITZ_TESTS_BLOCKING_ENABLED
+              WAIT_MAX_TIMEOUT: "3600"
+              BITBUCKET_ACCESS_TOKEN: $CMA_AUTOMATION_REPO_ACCESS_TOKEN
+              REPOSITORY: "cma-automations"
+              CUSTOM_PIPELINE_NAME: "jcma-blitz-tests"
+              PIPELINE_VARIABLES: >
+                [{
+                  "key": "CMA_BRANCH_NAME",
+                  "value": $BITBUCKET_BRANCH
+                },
+                {
+                  "key": "JDK_VERSION",
+                  "value": "21"
+                },
+                {
+                  "key": "JIRA_VERSION",
+                  "value": "8.20.28"
+                }]
+        after-script: *playwright-debug-on-failure
+    - step: &run-playwright-preflight-tests-jira8
+        name: Run Preflight Tests with Playwright (Jira 8)
+        script:
+          - pipe: atlassian/trigger-pipeline:5.9.0
+            variables:
+              WAIT: $PLAYWRIGHT_PREFLIGHT_TESTS_BLOCKING_ENABLED
+              WAIT_MAX_TIMEOUT: "3600"
+              BITBUCKET_ACCESS_TOKEN: $CMA_AUTOMATION_REPO_ACCESS_TOKEN
+              REPOSITORY: "cma-automations"
+              CUSTOM_PIPELINE_NAME: "jcma-preflight-tests"
+              PIPELINE_VARIABLES: >
+                [{
+                  "key": "CMA_BRANCH_NAME",
+                  "value": $BITBUCKET_BRANCH
+                },
+                {
+                  "key": "JDK_VERSION",
+                  "value": "21"
+                },
+                {
+                  "key": "JIRA_VERSION",
+                  "value": "8.20.28"
+                }]
+        after-script: *playwright-debug-on-failure
+    - step: &run-playwright-backward-compatibility-tests-jira8
+        name: Run Backward Compatibility Tests with Playwright (Jira 8)
+        script:
+          - pipe: atlassian/trigger-pipeline:5.9.0
+            variables:
+              WAIT: $PLAYWRIGHT_BACKWARD_COMPATIBILITY_TESTS_BLOCKING_ENABLED
+              WAIT_MAX_TIMEOUT: "3600"
+              BITBUCKET_ACCESS_TOKEN: $CMA_AUTOMATION_REPO_ACCESS_TOKEN
+              REPOSITORY: "cma-automations"
+              CUSTOM_PIPELINE_NAME: "jcma-backward-compatibility-tests"
+              PIPELINE_VARIABLES: >
+                [{
+                  "key": "CMA_BRANCH_NAME",
+                  "value": $BITBUCKET_BRANCH
+                },
+                {
+                  "key": "JDK_VERSION",
+                  "value": "21"
+                },
+                {
+                  "key": "JIRA_VERSION",
+                  "value": "8.20.28"
+                }]
+        after-script: *playwright-debug-on-failure
+    # --- Jira 10 version-specific Playwright steps ---
+    - step: &run-playwright-integration-tests-jira10
+        name: Run UI Integration Tests with Playwright (Jira 10)
+        script:
+          - pipe: atlassian/trigger-pipeline:5.9.0
+            variables:
+              WAIT: $PLAYWRIGHT_INTEGRATION_TESTS_BLOCKING_ENABLED
+              WAIT_MAX_TIMEOUT: "3600"
+              BITBUCKET_ACCESS_TOKEN: $CMA_AUTOMATION_REPO_ACCESS_TOKEN
+              REPOSITORY: "cma-automations"
+              CUSTOM_PIPELINE_NAME: "jcma-integration-tests"
+              PIPELINE_VARIABLES: >
+                [{
+                  "key": "CMA_BRANCH_NAME",
+                  "value": $BITBUCKET_BRANCH
+                },
+                {
+                  "key": "JDK_VERSION",
+                  "value": "21"
+                },
+                {
+                  "key": "JIRA_VERSION",
+                  "value": "10.4.1"
+                }]
+        after-script: *playwright-debug-on-failure
+    - step: &run-playwright-blitz-tests-jira10
+        name: Run Blitz Tests with Playwright (Jira 10)
+        script:
+          - pipe: atlassian/trigger-pipeline:5.9.0
+            variables:
+              WAIT: $PLAYWRIGHT_BLITZ_TESTS_BLOCKING_ENABLED
+              WAIT_MAX_TIMEOUT: "3600"
+              BITBUCKET_ACCESS_TOKEN: $CMA_AUTOMATION_REPO_ACCESS_TOKEN
+              REPOSITORY: "cma-automations"
+              CUSTOM_PIPELINE_NAME: "jcma-blitz-tests"
+              PIPELINE_VARIABLES: >
+                [{
+                  "key": "CMA_BRANCH_NAME",
+                  "value": $BITBUCKET_BRANCH
+                },
+                {
+                  "key": "JDK_VERSION",
+                  "value": "21"
+                },
+                {
+                  "key": "JIRA_VERSION",
+                  "value": "10.4.1"
+                }]
+        after-script: *playwright-debug-on-failure
+    - step: &run-playwright-preflight-tests-jira10
+        name: Run Preflight Tests with Playwright (Jira 10)
+        script:
+          - pipe: atlassian/trigger-pipeline:5.9.0
+            variables:
+              WAIT: $PLAYWRIGHT_PREFLIGHT_TESTS_BLOCKING_ENABLED
+              WAIT_MAX_TIMEOUT: "3600"
+              BITBUCKET_ACCESS_TOKEN: $CMA_AUTOMATION_REPO_ACCESS_TOKEN
+              REPOSITORY: "cma-automations"
+              CUSTOM_PIPELINE_NAME: "jcma-preflight-tests"
+              PIPELINE_VARIABLES: >
+                [{
+                  "key": "CMA_BRANCH_NAME",
+                  "value": $BITBUCKET_BRANCH
+                },
+                {
+                  "key": "JDK_VERSION",
+                  "value": "21"
+                },
+                {
+                  "key": "JIRA_VERSION",
+                  "value": "10.4.1"
+                }]
+        after-script: *playwright-debug-on-failure
+    - step: &run-playwright-backward-compatibility-tests-jira10
+        name: Run Backward Compatibility Tests with Playwright (Jira 10)
+        script:
+          - pipe: atlassian/trigger-pipeline:5.9.0
+            variables:
+              WAIT: $PLAYWRIGHT_BACKWARD_COMPATIBILITY_TESTS_BLOCKING_ENABLED
+              WAIT_MAX_TIMEOUT: "3600"
+              BITBUCKET_ACCESS_TOKEN: $CMA_AUTOMATION_REPO_ACCESS_TOKEN
+              REPOSITORY: "cma-automations"
+              CUSTOM_PIPELINE_NAME: "jcma-backward-compatibility-tests"
+              PIPELINE_VARIABLES: >
+                [{
+                  "key": "CMA_BRANCH_NAME",
+                  "value": $BITBUCKET_BRANCH
+                },
+                {
+                  "key": "JDK_VERSION",
+                  "value": "21"
+                },
+                {
+                  "key": "JIRA_VERSION",
+                  "value": "10.4.1"
+                }]
+        after-script: *playwright-debug-on-failure
+    # --- Jira 7 version-specific Playwright steps ---
+    - step: &run-playwright-integration-tests-jira7
+        name: Run UI Integration Tests with Playwright (Jira 7)
+        script:
+          - pipe: atlassian/trigger-pipeline:5.9.0
+            variables:
+              WAIT: $PLAYWRIGHT_INTEGRATION_TESTS_BLOCKING_ENABLED
+              WAIT_MAX_TIMEOUT: "3600"
+              BITBUCKET_ACCESS_TOKEN: $CMA_AUTOMATION_REPO_ACCESS_TOKEN
+              REPOSITORY: "cma-automations"
+              CUSTOM_PIPELINE_NAME: "jcma-integration-tests"
+              PIPELINE_VARIABLES: >
+                [{
+                  "key": "CMA_BRANCH_NAME",
+                  "value": $BITBUCKET_BRANCH
+                },
+                {
+                  "key": "JDK_VERSION",
+                  "value": "21"
+                },
+                {
+                  "key": "JIRA_VERSION",
+                  "value": "7.13.0"
+                }]
+        after-script: *playwright-debug-on-failure
+    - step: &run-playwright-blitz-tests-jira7
+        name: Run Blitz Tests with Playwright (Jira 7)
+        script:
+          - pipe: atlassian/trigger-pipeline:5.9.0
+            variables:
+              WAIT: $PLAYWRIGHT_BLITZ_TESTS_BLOCKING_ENABLED
+              WAIT_MAX_TIMEOUT: "3600"
+              BITBUCKET_ACCESS_TOKEN: $CMA_AUTOMATION_REPO_ACCESS_TOKEN
+              REPOSITORY: "cma-automations"
+              CUSTOM_PIPELINE_NAME: "jcma-blitz-tests"
+              PIPELINE_VARIABLES: >
+                [{
+                  "key": "CMA_BRANCH_NAME",
+                  "value": $BITBUCKET_BRANCH
+                },
+                {
+                  "key": "JDK_VERSION",
+                  "value": "21"
+                },
+                {
+                  "key": "JIRA_VERSION",
+                  "value": "7.13.0"
+                }]
+        after-script: *playwright-debug-on-failure
+    - step: &run-playwright-preflight-tests-jira7
+        name: Run Preflight Tests with Playwright (Jira 7)
+        script:
+          - pipe: atlassian/trigger-pipeline:5.9.0
+            variables:
+              WAIT: $PLAYWRIGHT_PREFLIGHT_TESTS_BLOCKING_ENABLED
+              WAIT_MAX_TIMEOUT: "3600"
+              BITBUCKET_ACCESS_TOKEN: $CMA_AUTOMATION_REPO_ACCESS_TOKEN
+              REPOSITORY: "cma-automations"
+              CUSTOM_PIPELINE_NAME: "jcma-preflight-tests"
+              PIPELINE_VARIABLES: >
+                [{
+                  "key": "CMA_BRANCH_NAME",
+                  "value": $BITBUCKET_BRANCH
+                },
+                {
+                  "key": "JDK_VERSION",
+                  "value": "21"
+                },
+                {
+                  "key": "JIRA_VERSION",
+                  "value": "7.13.0"
+                }]
+        after-script: *playwright-debug-on-failure
+    - step: &run-playwright-backward-compatibility-tests-jira7
+        name: Run Backward Compatibility Tests with Playwright (Jira 7)
+        script:
+          - pipe: atlassian/trigger-pipeline:5.9.0
+            variables:
+              WAIT: $PLAYWRIGHT_BACKWARD_COMPATIBILITY_TESTS_BLOCKING_ENABLED
+              WAIT_MAX_TIMEOUT: "3600"
+              BITBUCKET_ACCESS_TOKEN: $CMA_AUTOMATION_REPO_ACCESS_TOKEN
+              REPOSITORY: "cma-automations"
+              CUSTOM_PIPELINE_NAME: "jcma-backward-compatibility-tests"
+              PIPELINE_VARIABLES: >
+                [{
+                  "key": "CMA_BRANCH_NAME",
+                  "value": $BITBUCKET_BRANCH
+                },
+                {
+                  "key": "JDK_VERSION",
+                  "value": "21"
+                },
+                {
+                  "key": "JIRA_VERSION",
+                  "value": "7.13.0"
+                }]
+        after-script: *playwright-debug-on-failure
+    # --- Jira 11 version-specific Playwright steps ---
+    - step: &run-playwright-integration-tests-jira11
+        name: Run UI Integration Tests with Playwright (Jira 11)
+        script:
+          - pipe: atlassian/trigger-pipeline:5.9.0
+            variables:
+              WAIT: $PLAYWRIGHT_INTEGRATION_TESTS_BLOCKING_ENABLED
+              WAIT_MAX_TIMEOUT: "3600"
+              BITBUCKET_ACCESS_TOKEN: $CMA_AUTOMATION_REPO_ACCESS_TOKEN
+              REPOSITORY: "cma-automations"
+              CUSTOM_PIPELINE_NAME: "jcma-integration-tests"
+              PIPELINE_VARIABLES: >
+                [{
+                  "key": "CMA_BRANCH_NAME",
+                  "value": $BITBUCKET_BRANCH
+                },
+                {
+                  "key": "JDK_VERSION",
+                  "value": "21"
+                },
+                {
+                  "key": "JIRA_VERSION",
+                  "value": "11.0.0"
+                }]
+        after-script: *playwright-debug-on-failure
+    - step: &run-playwright-blitz-tests-jira11
+        name: Run Blitz Tests with Playwright (Jira 11)
+        script:
+          - pipe: atlassian/trigger-pipeline:5.9.0
+            variables:
+              WAIT: $PLAYWRIGHT_BLITZ_TESTS_BLOCKING_ENABLED
+              WAIT_MAX_TIMEOUT: "3600"
+              BITBUCKET_ACCESS_TOKEN: $CMA_AUTOMATION_REPO_ACCESS_TOKEN
+              REPOSITORY: "cma-automations"
+              CUSTOM_PIPELINE_NAME: "jcma-blitz-tests"
+              PIPELINE_VARIABLES: >
+                [{
+                  "key": "CMA_BRANCH_NAME",
+                  "value": $BITBUCKET_BRANCH
+                },
+                {
+                  "key": "JDK_VERSION",
+                  "value": "21"
+                },
+                {
+                  "key": "JIRA_VERSION",
+                  "value": "11.0.0"
+                }]
+        after-script: *playwright-debug-on-failure
+    - step: &run-playwright-preflight-tests-jira11
+        name: Run Preflight Tests with Playwright (Jira 11)
+        script:
+          - pipe: atlassian/trigger-pipeline:5.9.0
+            variables:
+              WAIT: $PLAYWRIGHT_PREFLIGHT_TESTS_BLOCKING_ENABLED
+              WAIT_MAX_TIMEOUT: "3600"
+              BITBUCKET_ACCESS_TOKEN: $CMA_AUTOMATION_REPO_ACCESS_TOKEN
+              REPOSITORY: "cma-automations"
+              CUSTOM_PIPELINE_NAME: "jcma-preflight-tests"
+              PIPELINE_VARIABLES: >
+                [{
+                  "key": "CMA_BRANCH_NAME",
+                  "value": $BITBUCKET_BRANCH
+                },
+                {
+                  "key": "JDK_VERSION",
+                  "value": "21"
+                },
+                {
+                  "key": "JIRA_VERSION",
+                  "value": "11.0.0"
+                }]
+        after-script: *playwright-debug-on-failure
+    - step: &run-playwright-backward-compatibility-tests-jira11
+        name: Run Backward Compatibility Tests with Playwright (Jira 11)
+        script:
+          - pipe: atlassian/trigger-pipeline:5.9.0
+            variables:
+              WAIT: $PLAYWRIGHT_BACKWARD_COMPATIBILITY_TESTS_BLOCKING_ENABLED
+              WAIT_MAX_TIMEOUT: "3600"
+              BITBUCKET_ACCESS_TOKEN: $CMA_AUTOMATION_REPO_ACCESS_TOKEN
+              REPOSITORY: "cma-automations"
+              CUSTOM_PIPELINE_NAME: "jcma-backward-compatibility-tests"
+              PIPELINE_VARIABLES: >
+                [{
+                  "key": "CMA_BRANCH_NAME",
+                  "value": $BITBUCKET_BRANCH
+                },
+                {
+                  "key": "JDK_VERSION",
+                  "value": "21"
+                },
+                {
+                  "key": "JIRA_VERSION",
+                  "value": "11.0.0"
+                }]
+        after-script: *playwright-debug-on-failure
+    - step: &trigger-perf-test-if-branch-diverges-from-master-or-develop
+        name: Trigger Perf Test if branch diverges from Master/Develop
+        trigger: manual
+        script:
+          - scripts/performance-testing/detectDivergenceFromAncestorBranch.sh
+          # If we get here, divergence was detected, so run perf test
+          - *setup-deps
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - scripts/buildSnapshotVersionWithHash.sh
+          - scripts/performance-testing/triggerPerfTestForBuildJar.sh staging DEBUG -a "${TRIGGEREDBY}"
+
+    - step: &notify-jira-for-custom-jar
+        name: Notify custom jar
+        image: curlimages/curl
+        script:
+          - |
+            CUSTOMER_NAME="${CUSTOMER_NAME}"
+            CUSTOM_RELEASE_REASON="${CUSTOM_RELEASE_REASON}"
+            BRANCH_NAME="${BITBUCKET_BRANCH}"
+            REPORTER="${YOUR_EMAIL_ID}"
+            TIMESTAMP=$(date +%Y%m%d%H%M%S)  # Generate timestamp (e.g., 20230512123045)
+            
+            # Extract version info for JAR link construction
+            commitID=$(echo "$BITBUCKET_COMMIT" | cut -c1-7)
+            
+            # Construct JAR URLs (both private and public repos)
+            originalVersion=$(cat pom.xml | grep -m1 '<version>' | sed 's/.*<version>\(.*\)<\/version>.*/\1/')
+            versionNumber=$(echo "$originalVersion" | cut -d"-" -f1)
+            customVersionForTag="$versionNumber-$CUSTOMER_NAME-$commitID"
+            customPublicVersionForTag="$versionNumber-$commitID-public"
+            
+            PRIVATE_JAR_URL="https://packages.atlassian.com/ui/repos/tree/General/maven-private-local/com/atlassian/jira/migration/jira-migration-plugin/$customVersionForTag/jira-migration-plugin-$customVersionForTag.jar"
+            PUBLIC_JAR_URL="https://packages.atlassian.com/ui/repos/tree/General/maven-external/com/atlassian/jira/migration/jira-migration-plugin/$customPublicVersionForTag/jira-migration-plugin-$customPublicVersionForTag.jar"
+            MAVEN_URL="https://maven.artifacts.atlassian.com/com/atlassian/jira/migration/jira-migration-plugin/$customPublicVersionForTag/"
+            
+            curl -X POST https://api-private.atlassian.com/automation/webhooks/jira/a/cb74e0ec-52d8-4c84-93c3-45501c34cd80/019985c9-a1a5-7745-a182-6556d14d4973 \
+            -H "Content-Type: application/json" \
+            -H "X-Automation-Webhook-Token: ${CUSTOM_JAR_AUTOMATION_TOKEN}" \
+            -d @- <<EOF 
+            {
+              "customer": "${CUSTOMER_NAME}",
+              "timestamp": "${TIMESTAMP}",
+              "branch_name": "${BRANCH_NAME}",
+              "release_reason": "${CUSTOM_RELEASE_REASON}",
+              "reporter": "${REPORTER}",
+              "jar_version": "${customVersionForTag}",
+              "public_jar_version": "${customPublicVersionForTag}",
+              "jar_links": {
+                "private_jar_url": "${PRIVATE_JAR_URL}",
+                "public_jar_url": "${PUBLIC_JAR_URL}",
+                "maven_url": "${MAVEN_URL}"
+              },
+              "build_info": {
+                "commit_id": "${commitID}",
+                "full_commit": "${BITBUCKET_COMMIT}",
+                "build_number": "${BITBUCKET_BUILD_NUMBER}",
+                "repo_full_name": "${BITBUCKET_REPO_FULL_NAME}",
+                "workflow_url" : "https://bitbucket.org/atlassian/jira-migration-plugin/pipelines/results/${BITBUCKET_BUILD_NUMBER}"
+              },
+            "socrates_link" : "https://socrates-workbench-01.cloud.databricks.com/dashboardsv3/01f08fb7636712caa3bbe4318693b45b/published?o=4246564776986330"
+            }
+            EOF
+    - step: &kss-code-review-report
+        name: "KSS Code Review"
+        # Optional, but helps in debugging.
+        artifacts:
+          - code-insights-report.json
+          - kss-report.log
+        clone:
+          strategy: clone
+          depth: full
+        script:
+          - pipe: atlassian/artifactory-sidekick:v1
+          - source .artifactory/activate.sh
+          - if [[ -f .git/objects/info/alternates ]]; then git repack -a -d && rm -rf .git/objects/info/alternates; fi
+          - if ! [[ -f .git/refs/remotes/origin/$BITBUCKET_PR_DESTINATION_BRANCH ]]; then git fetch origin $BITBUCKET_PR_DESTINATION_BRANCH; fi
+          - git branch -f $BITBUCKET_PR_DESTINATION_BRANCH origin/$BITBUCKET_PR_DESTINATION_BRANCH
+          - git reset --hard origin/$BITBUCKET_BRANCH
+          - pipe: docker://docker.atl-paas.net/atlassian/code-reports-kss:0.7.6-5282124
+            variables:
+              TARGET_BRANCH: $BITBUCKET_PR_DESTINATION_BRANCH
+              # Maximum size of changed files to scan. Parsing large files can be slow or error out.
+              SIZE_LIMIT_KB: "100"
+          - pipe: docker://docker.atl-paas.net/atlassian/code-insights:1.4.8-5282124
+            variables:
+              KEY: kss
+
+pipelines:
+  default:
+    - step: *resolve-dependencies
+    - parallel:
+        - step: *run-static-analysis
+        - step: *ktlint
+        - step: *build-only
+        - step: *unit-test-group-0
+        - step: *unit-test-group-1
+        - step: *unit-test-group-2
+        - step: *unit-test-group-3
+        - step: *unit-test-group-other
+        - step: *integration-test-group-0
+        - step: *integration-test-group-1
+        - step: *database-it-postgres-jira-85
+        - step: *database-it-postgres-jira-820
+        - step: *database-it-postgres-jira-9.12.19
+        - step: *database-it-postgres-jira-10.4.1
+        - step: *database-it-postgres-jira-11.0.0
+        - step: *database-it-mysql-jira-85
+        - step: *database-it-mysql-jira-820
+        - step: *database-it-mysql-jira-9.12.19
+        - step: *database-it-mysql-jira-10.4.1-group-0
+        - step: *database-it-mysql-jira-10.4.1-group-1
+        - step: *database-it-mysql-jira-10.4.1-group-2
+        - step: *database-it-mysql-jira-11.0.0-group-0
+        - step: *database-it-mysql-jira-11.0.0-group-1
+        - step: *database-it-mysql-jira-11.0.0-group-2
+        - step: *database-it-mssql-jira-85
+        - step: *database-it-mssql-jira-820
+        - step: *database-it-mssql-jira-9.12.19
+        - step: *database-it-mssql-jira-10.4.1
+        - step: *database-it-mssql-jira-11.0.0
+        - step: *run-playwright-integration-tests
+        - step: *run-playwright-blitz-tests
+        - step: *run-playwright-preflight-tests
+        # Version-specific Playwright tests (manual trigger)
+        - step:
+            <<: *run-playwright-integration-tests-jira7
+            trigger: manual
+        - step:
+            <<: *run-playwright-blitz-tests-jira7
+            trigger: manual
+        - step:
+            <<: *run-playwright-preflight-tests-jira7
+            trigger: manual
+        - step:
+            <<: *run-playwright-backward-compatibility-tests-jira7
+            trigger: manual
+        - step:
+            <<: *run-playwright-integration-tests-jira8
+            trigger: manual
+        - step:
+            <<: *run-playwright-blitz-tests-jira8
+            trigger: manual
+        - step:
+            <<: *run-playwright-preflight-tests-jira8
+            trigger: manual
+        - step:
+            <<: *run-playwright-backward-compatibility-tests-jira8
+            trigger: manual
+        - step:
+            <<: *run-playwright-integration-tests-jira10
+            trigger: manual
+        - step:
+            <<: *run-playwright-blitz-tests-jira10
+            trigger: manual
+        - step:
+            <<: *run-playwright-preflight-tests-jira10
+            trigger: manual
+        - step:
+            <<: *run-playwright-backward-compatibility-tests-jira10
+            trigger: manual
+        - step:
+            <<: *run-playwright-integration-tests-jira11
+            trigger: manual
+        - step:
+            <<: *run-playwright-blitz-tests-jira11
+            trigger: manual
+        - step:
+            <<: *run-playwright-preflight-tests-jira11
+            trigger: manual
+        - step:
+            <<: *run-playwright-backward-compatibility-tests-jira11
+            trigger: manual
+  pull-requests:
+    "**": #this runs as default for any branch not elsewhere defined
+      - parallel:
+          - step: *cancel-previous-commit-pipelines
+          - step: *resolve-dependencies
+      - parallel:
+          - step: *build-only
+          - step: *unit-test-group-0
+          - step: *unit-test-group-1
+          - step: *unit-test-group-2
+          - step: *unit-test-group-3
+          - step: *unit-test-group-other
+          - step: *integration-test-group-0
+          - step: *integration-test-group-1
+      - step: *sonar-report
+      - step: *kss-code-review-report
+      - step: *app-migration-end-to-end-test-non-blocking
+      - step: *install-snapshot-jar-to-server-instance-manual
+  branches:
+    master:
+      - parallel:
+          - step: *build-test
+          - step: *sonar
+          - step: *default-integration-test
+          - step: *database-it-postgres-jira-85
+          - step: *database-it-postgres-jira-820
+          - step: *database-it-postgres-jira-9.12.19
+          - step: *database-it-postgres-jira-10.4.1
+          - step: *database-it-postgres-jira-11.0.0
+          - step: *database-it-mysql-jira-85
+          - step: *database-it-mysql-jira-820
+          - step: *database-it-mysql-jira-9.12.19
+          - step: *database-it-mysql-jira-10.4.1-group-0
+          - step: *database-it-mysql-jira-10.4.1-group-1
+          - step: *database-it-mysql-jira-10.4.1-group-2
+          - step: *database-it-mysql-jira-11.0.0-group-0
+          - step: *database-it-mysql-jira-11.0.0-group-1
+          - step: *database-it-mysql-jira-11.0.0-group-2
+          - step: *database-it-mssql-jira-85
+          - step: *database-it-mssql-jira-820
+          - step: *database-it-mssql-jira-9.12.19
+          - step: *database-it-mssql-jira-10.4.1
+          - step: *database-it-mssql-jira-11.0.0
+      - step: *perform-release
+      - step: *install-snapshot-jar-to-server-instance
+    release-test/*:
+      - parallel:
+          - step: *download-stag-jar
+          - step: *download-prod-jar
+#      - parallel:
+#          - step: *perform-blitz
+#          - step: *test-regression-server
+#      - step: *cleanUpCloud
+      - step: *perform-release
+      - step: *create-merge-back-PRs
+      - step: *private-release
+      - step: *public-release
+      - step: *run-JAC-and-GSAC-update-pipeline
+    release/*:
+      - parallel:
+          on-fail:
+            strategy: retry
+            maxRetryCount: 3
+          steps:
+#            - step: *create-release-notes
+            - step: *build-test
+            - step: *default-integration-test
+            - step: *database-it-postgres-jira-85
+            - step: *database-it-postgres-jira-820
+            - step: *database-it-postgres-jira-9.12.19
+            - step: *database-it-postgres-jira-10.4.1
+            - step: *database-it-postgres-jira-11.0.0
+            - step: *database-it-mysql-jira-85
+            - step: *database-it-mysql-jira-820
+            - step: *database-it-mysql-jira-9.12.19
+            - step: *database-it-mysql-jira-10.4.1-group-0
+            - step: *database-it-mysql-jira-10.4.1-group-1
+            - step: *database-it-mysql-jira-10.4.1-group-2
+            - step: *database-it-mysql-jira-11.0.0-group-0
+            - step: *database-it-mysql-jira-11.0.0-group-1
+            - step: *database-it-mysql-jira-11.0.0-group-2
+            - step: *database-it-mssql-jira-85
+            - step: *database-it-mssql-jira-820
+            - step: *database-it-mssql-jira-9.12.19
+            - step: *database-it-mssql-jira-10.4.1
+            - step: *database-it-mssql-jira-11.0.0
+            - step: *run-playwright-integration-tests
+            - step: *run-playwright-blitz-tests
+            - step: *run-playwright-preflight-tests
+            - step: *run-playwright-backward-compatibility-tests
+            - step: *run-playwright-integration-tests-jira8
+            - step: *run-playwright-blitz-tests-jira8
+            - step: *run-playwright-preflight-tests-jira8
+            - step: *run-playwright-backward-compatibility-tests-jira8
+            - step: *run-playwright-integration-tests-jira10
+            - step: *run-playwright-blitz-tests-jira10
+            - step: *run-playwright-preflight-tests-jira10
+            - step: *run-playwright-backward-compatibility-tests-jira10
+            - step: *run-playwright-integration-tests-jira7
+            - step: *run-playwright-blitz-tests-jira7
+            - step: *run-playwright-preflight-tests-jira7
+            - step: *run-playwright-backward-compatibility-tests-jira7
+            - step: *run-playwright-integration-tests-jira11
+            - step: *run-playwright-blitz-tests-jira11
+            - step: *run-playwright-preflight-tests-jira11
+            - step: *run-playwright-backward-compatibility-tests-jira11
+      - step: *start-jar-creation
+      - parallel:
+          - step: *download-stag-jar
+          - step: *download-prod-jar
+      - parallel:
+          - step: *perform-blitz
+          - step: *test-regression-server
+#      - step: *trigger-perf-test-if-branch-diverges-from-master-or-develop
+      - step: *clean-up-cloud
+      - step: *perform-release
+      - step: *create-merge-back-PRs
+      - step: *private-release
+      - step: *public-release
+      - step: *run-JAC-and-GSAC-update-pipeline
+    bot/ui-package-update/*:
+      - step: *yarn-install
+      - parallel:
+          on-fail:
+            strategy: retry
+            maxRetryCount: 1
+          steps:
+            - step: *run-static-analysis
+            - step: *build-test
+            - step: *default-integration-test
+            - step: *database-it-postgres-jira-85
+            - step: *database-it-postgres-jira-820
+            - step: *database-it-postgres-jira-9.12.19
+            - step: *database-it-postgres-jira-10.4.1
+            - step: *database-it-postgres-jira-11.0.0
+            - step: *database-it-mysql-jira-85
+            - step: *database-it-mysql-jira-820
+            - step: *database-it-mysql-jira-9.12.19
+            - step: *database-it-mysql-jira-10.4.1-group-0
+            - step: *database-it-mysql-jira-10.4.1-group-1
+            - step: *database-it-mysql-jira-10.4.1-group-2
+            - step: *database-it-mysql-jira-11.0.0-group-0
+            - step: *database-it-mysql-jira-11.0.0-group-1
+            - step: *database-it-mysql-jira-11.0.0-group-2
+            - step: *database-it-mssql-jira-85
+            - step: *database-it-mssql-jira-820
+            - step: *database-it-mssql-jira-9.12.19
+            - step: *database-it-mssql-jira-10.4.1
+            - step: *database-it-mssql-jira-11.0.0
+            - step: *run-playwright-integration-tests
+            - step: *run-playwright-blitz-tests
+            - step: *run-playwright-preflight-tests
+            - step: *run-playwright-backward-compatibility-tests
+  custom:
+    custom_release:
+      - variables:
+          - name: CUSTOMER_NAME
+          - name: CUSTOM_RELEASE_REASON
+          - name: YOUR_EMAIL_ID
+          - name: BASE_VERSION
+            default: ""
+      - step:
+          name: Input variable check
+          script:
+            - echo "Customer name = $CUSTOMER_NAME"
+            - echo "Custom reason = $CUSTOM_RELEASE_REASON"
+            - echo "Email id = $YOUR_EMAIL_ID"
+            - |
+              if [ -z "$CUSTOMER_NAME" ]; then
+                echo "Error: The 'CUSTOMER_NAME' variable is mandatory. Please provide a value."
+                exit 1
+              fi
+              
+              if [ -z "$CUSTOM_RELEASE_REASON" ]; then
+                echo "Error: The 'CUSTOM_RELEASE_REASON' variable is mandatory. Please provide a value."
+                exit 1
+              fi
+              
+              if [ -z "$YOUR_EMAIL_ID" ]; then
+                echo "Error: The 'YOUR_EMAIL_ID' variable is mandatory. Please provide a value."
+                exit 1
+              fi
+
+      - parallel:
+          - step: *build-test
+          - step: *default-integration-test
+      - step: *perform-custom-release
+      - step: *notify-jira-for-custom-jar
+      - step: *publish-custom-release-to-maven
+
+    deploy_to_instenv:
+      - variables:
+          - name: JIRA_BASE_URL
+          - name: ADMIN_PASSWORD
+      - step:
+          <<: *stepDefaults
+          name: Deploy To Instenv
+          script:
+            - pipe: atlassian/artifactory-sidekick:v1
+            - source .artifactory/activate.sh
+            - scripts/buildSnapshotVersionWithHash.sh
+            - scripts/installBuildJarToJiraInstance.sh "$JIRA_BASE_URL" "$ADMIN_PASSWORD"
+    deploy_to_instenv_staging:
+      - variables:
+          - name: JIRA_BASE_URL
+          - name: ADMIN_PASSWORD
+          - name: ADMIN_USERNAME
+      - step:
+          <<: *stepDefaults
+          name: Deploy Staging Jar To Instenv
+          script:
+            - pipe: atlassian/artifactory-sidekick:v1
+            - source .artifactory/activate.sh
+            - git apply ./jcma-connect-to-staging-1_0.patch
+            - scripts/buildSnapshotVersionWithHash.sh
+            - scripts/installBuildJarToJiraInstance.sh "$JIRA_BASE_URL" "$ADMIN_PASSWORD" "$ADMIN_USERNAME"
+    trigger-20k-perf-test-staging:
+      - step:
+          <<: *stepDefaults
+          name: Trigger Staging 20K Performance Test
+          size: 4x
+          script:
+            - *setup-deps
+            - pipe: atlassian/artifactory-sidekick:v1
+            - source .artifactory/activate.sh
+            - scripts/performance-testing/checkout_release_branch.py scripts/buildSnapshotVersionWithHash.sh
+            - scripts/performance-testing/triggerPerfTestForBuildJar.sh -e staging -d EXTRA_LARGE_BMW_20K_V1 -a "${TRIGGEREDBY}"
+    trigger-yahoo-perf-test-staging:
+      - step:
+          <<: *stepDefaults
+          name: Trigger Staging Yahoo Performance Test
+          size: 4x
+          script:
+            - *setup-deps
+            - pipe: atlassian/artifactory-sidekick:v1
+            - source .artifactory/activate.sh
+            - scripts/performance-testing/checkout_release_branch.py scripts/buildSnapshotVersionWithHash.sh
+            - scripts/performance-testing/triggerPerfTestForBuildJar.sh -e staging -d LARGE_YAHOO -a "${TRIGGEREDBY}"
+    trigger-20k-perf-test-prod:
+      - step:
+          <<: *stepDefaults
+          name: Trigger Prod 20k Performance Test
+          size: 4x
+          script:
+            - *setup-deps
+            - pipe: atlassian/artifactory-sidekick:v1
+            - source .artifactory/activate.sh
+            - scripts/performance-testing/checkout_release_branch.py scripts/buildSnapshotVersionWithHash.sh
+            - scripts/performance-testing/triggerPerfTestForBuildJar.sh -e prod -d EXTRA_LARGE_BMW_20K_V1 -a "${TRIGGEREDBY}"
+    trigger-yahoo-perf-test-prod:
+      - step:
+          <<: *stepDefaults
+          name: Trigger Prod Yahoo Performance Test
+          size: 4x
+          script:
+            - *setup-deps
+            - pipe: atlassian/artifactory-sidekick:v1
+            - source .artifactory/activate.sh
+            - scripts/performance-testing/checkout_release_branch.py scripts/buildSnapshotVersionWithHash.sh
+            - scripts/performance-testing/triggerPerfTestForBuildJar.sh -e prod -d LARGE_YAHOO -a "${TRIGGEREDBY}"
+    trigger-perf-test:
+      - variables:
+          - name: ENVIRONMENT
+            default: staging
+            allowed-values:
+              - staging
+              - prod
+          - name: DATA_SET_SIZE
+            default: LARGE_YAHOO
+            allowed-values:
+              - EXTRA_LARGE_BMW
+              - EXTRA_LARGE_BMW_13K_PROJECTS
+              - EXTRA_LARGE_BMW_20K_V1
+              - EXTRA_LARGE_BMW_50K_V1
+              - EXTRA_LARGE_SAP
+              - EXTRA_LARGE_JSM_60K
+              - LARGE_YAHOO
+              - SMALL
+              - DEBUG
+          - name: MIGRATION_SCOPE_OPTION
+            default: CONTAINERS_WITHOUT_ATTACHMENTS
+            allowed-values:
+              - ALL
+              - CONTAINERS_WITHOUT_ATTACHMENTS
+              - ATTACHMENTS_ONLY
+              - USERS_AND_GROUPS_ONLY
+              - APPS
+            description: Migration scope option to use
+          - name: USER_MIGRATION_MODE
+            default: ALL
+            allowed-values:
+              - NONE
+              - REFERENCED
+              - ALL
+            description: (Optional) User & JSD Customer migration mode to use
+          - name: SHARD
+            description: (Optional) Provide a valid shard prefix for the cloud site (e.g. "jira-perf-us-6")
+          - name: DARK_FEATURE_FLAGS
+            description: (Optional) Provide a comma delimited list of valid JCMA dark feature flags
+          - name: BLOCK_BEFORE_RUNNING
+            description: (Optional) Select "true" if you want to fully configure the Instenv + Cloudsite, but prevent the test migration itself from running
+            default: NO
+            allowed-values:
+              - NO
+              - YES
+      - step:
+          <<: *stepDefaults
+          name: Trigger Performance Test
+          size: 4x
+          script:
+            - *setup-deps
+            - pipe: atlassian/artifactory-sidekick:v1
+            - source .artifactory/activate.sh
+            - scripts/buildSnapshotVersionWithHash.sh
+            - |
+              # Start with base command
+              CMD="scripts/performance-testing/triggerPerfTestForBuildJar.sh -e \"$ENVIRONMENT\" -d \"$DATA_SET_SIZE\""
+
+              # Add migration scope option parameter if it's set
+              if [ -n "${MIGRATION_SCOPE_OPTION:-}" ]; then
+                CMD="$CMD -m \"$MIGRATION_SCOPE_OPTION\""
+              fi
+
+              # Add user migration mode parameter if it's set
+              if [ -n "${USER_MIGRATION_MODE:-}" ]; then
+                CMD="$CMD -u \"$USER_MIGRATION_MODE\""
+              fi
+
+              # Add shard parameter if it's set
+              if [ -n "${SHARD:-}" ]; then
+                CMD="$CMD -s \"$SHARD\""
+              fi
+
+              # Add dark feature flags parameter if it's set
+              if [ -n "${DARK_FEATURE_FLAGS:-}" ]; then
+                CMD="$CMD --dark-features \"$DARK_FEATURE_FLAGS\""
+              fi
+
+              # Add author parameter if it's set
+              if [ -n "${TRIGGEREDBY:-}" ]; then
+                CMD="$CMD -a \"$TRIGGEREDBY\""
+              fi
+
+              # Add block on starting parameter if it's set to TRUE/YES
+              if [[ "${BLOCK_BEFORE_RUNNING^^}" == "YES" ]] || [[ "${BLOCK_BEFORE_RUNNING^^}" == "TRUE" ]]; then
+                CMD="$CMD --block-running YES"
+              fi
+
+              # Execute the command
+              eval $CMD
+    create-release-notes:
+      - variables:
+          - name: PREVIOUS_RELEASE_BRANCH
+      - step: *create-release-notes
+    refresh-pipeline-target-cache:
+      - step: *invalidate-pipeline-target-cache
+      - step: *build-test
+    add-jcma-version-on-jac-and-gsac:
+      - variables:
+          - name: RELEASE_VERSION
+          - name: RELEASE_DATE_IN_YYYYMMDD
+          - name: RELEASE_DESCRIPTION
+      - parallel:
+          - step: *create-jcma-version-on-jac
+          - step: *create-jcma-version-on-gsac
+    cloud-site-cleanup:
+      - step: *clean-up-cloud
+    release-from-develop:
+      - variables:
+          - name: RELEASE_NAME
+      - step: *create-release-branch
