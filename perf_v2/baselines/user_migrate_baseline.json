@@ -1,0 +1,29 @@
+{
+  "run_label": "user_migrate_baseline",
+  "timestamp": "2026-05-01T10:00:00",
+  "recording": {"duration_s": 180, "start": "2026-05-01T10:00:00", "end": "2026-05-01T10:03:00"},
+  "cpu": {
+    "jvm_avg_pct": 12.0,
+    "jvm_peak_pct": 48.0,
+    "machine_avg_pct": 18.0
+  },
+  "memory": {
+    "heap_peak_gb": 2.8,
+    "heap_delta_gb": 0.3,
+    "gc_count": 90,
+    "gc_full_count": 0,
+    "gc_total_pause_ms": 8000,
+    "gc_max_pause_ms": 200,
+    "gc_pause_pct": 7.4
+  },
+  "socket": {
+    "db":  {"count": 600,  "avg_ms": 30,  "p95_ms": 90,  "max_ms": 800,  "total_ms": 18000},
+    "api": {"count": 1200, "avg_ms": 400, "p95_ms": 900, "total_ms": 480000}
+  },
+  "blocking": {
+    "thread_park":  {"count": 50000, "total_ms": 80000, "avg_ms": 1.6},
+    "monitor_wait": {"count": 600,   "total_ms": 4000}
+  },
+  "threads":    {"peak_active": 200, "avg_active": 140},
+  "exceptions": {"total_during_recording": 5000}
+}

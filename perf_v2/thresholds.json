@@ -1,0 +1,13 @@
+{
+  "_comment": "% increase over baseline allowed before a metric is flagged as regression. Edit here — do not hardcode in scripts.",
+  "cpu":         30,
+  "heap":        30,
+  "gc_pause":    30,
+  "gc_full":      0,
+  "db_reads":    20,
+  "db_latency":  30,
+  "api_latency": 30,
+  "blocking":    30,
+  "threads":     20,
+  "exceptions":  50
+}
