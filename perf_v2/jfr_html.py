@@ -529,12 +529,15 @@ def generate_html(metrics, series, comps, regressions, improvements,
     _app_pkg = m.get('app_package', '')
     _mig_pkg = m.get('migration_package', '')
 
+    def _caller_row(r, pkg):
+        full = r['caller']
+        abbr = _abbrev_method(full, pkg)
+        return (f"<tr><td class='mono' style='font-size:11px' title='{full}'>{abbr}</td>"
+                f"<td>{r['weight_mb']:.1f} MB</td>"
+                f"<td style='font-size:11px;color:var(--muted)'>{r['top_classes']}</td></tr>")
+
     alloc_caller_rows = "".join(
-        f"<tr><td class='mono' style='font-size:11px' title='{r[\"caller\"]}'>"
-        f"{_abbrev_method(r['caller'], _app_pkg)}</td>"
-        f"<td>{r['weight_mb']:.1f} MB</td>"
-        f"<td style='font-size:11px;color:var(--muted)'>{r['top_classes']}</td></tr>"
-        for r in alloc.get("top_callers", [])
+        _caller_row(r, _app_pkg) for r in alloc.get("top_callers", [])
     )
     alloc_caller_table = (
         "<table class='data-table'><thead><tr><th>App method (caller)</th><th>Sampled MB</th><th>Top types — ClassName(samples)</th></tr></thead><tbody>"
@@ -542,11 +545,7 @@ def generate_html(metrics, series, comps, regressions, improvements,
         + "</tbody></table>"
     )
     mig_caller_rows = "".join(
-        f"<tr><td class='mono' style='font-size:11px' title='{r[\"caller\"]}'>"
-        f"{_abbrev_method(r['caller'], _mig_pkg)}</td>"
-        f"<td>{r['weight_mb']:.1f} MB</td>"
-        f"<td style='font-size:11px;color:var(--muted)'>{r['top_classes']}</td></tr>"
-        for r in alloc.get("top_migration_callers", [])
+        _caller_row(r, _mig_pkg) for r in alloc.get("top_migration_callers", [])
     )
     mig_caller_table = (
         "<table class='data-table'><thead><tr><th>Migration method (caller)</th><th>Sampled MB</th><th>Top types — ClassName(samples)</th></tr></thead><tbody>"
