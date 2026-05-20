@@ -1,0 +1,137 @@
+{
+  "current_label": "may18_proj_2.jfr-20260519-112417",
+  "baseline_label": "project_export_baseline",
+  "thresholds": {
+    "cpu": 30,
+    "heap": 30,
+    "gc_pause": 30,
+    "gc_full": 0,
+    "db_reads": 20,
+    "db_latency": 30,
+    "api_latency": 30,
+    "blocking": 30,
+    "threads": 20,
+    "exceptions": 50
+  },
+  "metrics": [
+    {
+      "metric": "JVM CPU avg %",
+      "baseline": 18.0,
+      "current": 43.09,
+      "change_pct": 139.4,
+      "threshold_pct": 30,
+      "status": "regression"
+    },
+    {
+      "metric": "Heap peak (GB)",
+      "baseline": 3.5,
+      "current": 3.542,
+      "change_pct": 1.2,
+      "threshold_pct": 30,
+      "status": "ok"
+    },
+    {
+      "metric": "Heap delta (GB)",
+      "baseline": 0.5,
+      "current": 0.427,
+      "change_pct": -14.6,
+      "threshold_pct": 30,
+      "status": "improvement"
+    },
+    {
+      "metric": "GC total pause",
+      "baseline": 14000.0,
+      "current": 25845.4,
+      "change_pct": 84.6,
+      "threshold_pct": 30,
+      "status": "regression"
+    },
+    {
+      "metric": "GC full/old count",
+      "baseline": 0.0,
+      "current": 4.0,
+      "change_pct": null,
+      "threshold_pct": 0,
+      "status": "no_baseline"
+    },
+    {
+      "metric": "DB reads",
+      "baseline": 900.0,
+      "current": 97.0,
+      "change_pct": -89.2,
+      "threshold_pct": 20,
+      "status": "improvement"
+    },
+    {
+      "metric": "DB avg latency (ms)",
+      "baseline": 40.0,
+      "current": 48.45,
+      "change_pct": 21.1,
+      "threshold_pct": 30,
+      "status": "ok"
+    },
+    {
+      "metric": "DB total wait",
+      "baseline": 36000.0,
+      "current": 4700.0,
+      "change_pct": -86.9,
+      "threshold_pct": 20,
+      "status": "improvement"
+    },
+    {
+      "metric": "API avg latency (ms)",
+      "baseline": 600.0,
+      "current": 24.01,
+      "change_pct": -96.0,
+      "threshold_pct": 30,
+      "status": "improvement"
+    },
+    {
+      "metric": "Thread park total",
+      "baseline": 120000.0,
+      "current": 36333013.2,
+      "change_pct": 30177.5,
+      "threshold_pct": 30,
+      "status": "regression"
+    },
+    {
+      "metric": "Monitor wait total",
+      "baseline": 7000.0,
+      "current": 1165236.6,
+      "change_pct": 16546.2,
+      "threshold_pct": 30,
+      "status": "regression"
+    },
+    {
+      "metric": "Peak threads",
+      "baseline": 380.0,
+      "current": 380.0,
+      "change_pct": 0.0,
+      "threshold_pct": 20,
+      "status": "ok"
+    },
+    {
+      "metric": "Exceptions",
+      "baseline": 15000.0,
+      "current": 227383.0,
+      "change_pct": 1415.9,
+      "threshold_pct": 50,
+      "status": "regression"
+    }
+  ],
+  "regressions": [
+    "JVM CPU avg %: +139.4% (threshold 30%)",
+    "GC total pause: +84.6% (threshold 30%)",
+    "Thread park total: +30177.5% (threshold 30%)",
+    "Monitor wait total: +16546.2% (threshold 30%)",
+    "Exceptions: +1415.9% (threshold 50%)"
+  ],
+  "improvements": [
+    "Heap delta (GB): -14.6%",
+    "DB reads: -89.2%",
+    "DB total wait: -86.9%",
+    "API avg latency (ms): -96.0%"
+  ],
+  "regression_count": 5,
+  "passed": false
+}

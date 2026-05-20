@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>JFR Report — may18_user_2.jfr-20260519-112047</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg:#0f1117; --card:#1a1d27; --border:#2d3147; --text:#e4e6f0;
+  --muted:#6b7280; --accent:#4f8ef7; --red:#e74c3c; --green:#27ae60;
+  --orange:#f39c12; --yellow:#f1c40f;
+}
+* { box-sizing:border-box; margin:0; padding:0; }
+body { background:var(--bg); color:var(--text);
+       font-family:'Segoe UI',system-ui,sans-serif; font-size:14px; line-height:1.5; }
+a { color:var(--accent); text-decoration:none; }
+a:hover { text-decoration:underline; }
+
+header { background:var(--card); border-bottom:1px solid var(--border);
+         padding:16px 24px; }
+header h1 { font-size:1.25rem; font-weight:700; color:var(--accent); margin-bottom:4px; }
+header .meta { color:var(--muted); font-size:12px; line-height:1.8; }
+header .meta span { margin-right:18px; }
+
+main { max-width:1440px; margin:0 auto; padding:24px; }
+section { margin-bottom:36px; }
+h2 { font-size:1rem; font-weight:700; margin-bottom:14px; color:var(--accent);
+     border-bottom:1px solid var(--border); padding-bottom:6px;
+     display:flex; align-items:center; gap:8px; }
+h3 { font-size:.875rem; font-weight:600; margin:14px 0 8px; color:var(--text); }
+
+.kpi-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:10px; }
+.kpi { background:var(--card); border:1px solid var(--border); border-radius:8px;
+       padding:12px 14px; cursor:pointer; position:relative; transition:border-color .15s; }
+.kpi:hover { border-color:var(--accent); }
+.kpi .label { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; }
+.kpi .value { font-size:1.3rem; font-weight:700; margin-top:3px; line-height:1.2; }
+.kpi .sub   { font-size:11px; color:var(--muted); margin-top:2px; }
+.kpi .hint  { font-size:10px; color:var(--muted); margin-top:4px; opacity:.6; }
+.kpi.warn   { border-color:var(--red); }
+.kpi.caution{ border-color:var(--orange); }
+.kpi.ok     { border-color:var(--green); }
+
+.kpi-detail {
+  display:none; position:fixed; z-index:1000;
+  background:#1e2232; border:1px solid var(--accent); border-radius:10px;
+  padding:16px 18px; max-width:360px; width:90vw;
+  box-shadow:0 8px 32px rgba(0,0,0,.6); font-size:13px; line-height:1.6;
+}
+.kpi-detail.visible { display:block; }
+.kpi-detail h4 { color:var(--accent); font-size:.9rem; margin-bottom:8px; }
+.kpi-detail .kd-value { font-size:1.5rem; font-weight:700; margin-bottom:8px; }
+.kpi-detail .kd-sub { color:var(--muted); font-size:12px; margin-bottom:10px; }
+.kpi-detail .kd-body { color:var(--text); }
+.kpi-detail .kd-ideal { margin-top:10px; padding:8px 10px; background:#0f1a0f;
+                         border-left:3px solid var(--green); border-radius:4px;
+                         font-size:12px; color:#a8d5a2; }
+.kpi-detail .kd-warn  { margin-top:6px; padding:8px 10px; background:#1a0f0f;
+                         border-left:3px solid var(--red); border-radius:4px;
+                         font-size:12px; color:#d5a8a8; }
+.kpi-detail .close-btn { position:absolute; top:10px; right:12px; background:none;
+                          border:none; color:var(--muted); font-size:16px; cursor:pointer; }
+.kpi-detail .close-btn:hover { color:var(--text); }
+#kpi-overlay { display:none; position:fixed; inset:0; z-index:999; }
+
+.charts-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.chart-card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:16px; }
+.chart-card h3 { margin-top:0; }
+canvas { max-height:200px; }
+
+.data-table { width:100%; border-collapse:collapse; font-size:13px; }
+.data-table th { background:var(--border); padding:8px 12px; text-align:left;
+                 font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.4px;
+                 color:var(--muted); white-space:nowrap; }
+.data-table td { padding:7px 12px; border-bottom:1px solid var(--border); }
+.data-table tr:last-child td { border-bottom:none; }
+.data-table tr:hover td { background:#1e2232; }
+.mono { font-family:monospace; font-size:12px; word-break:break-all; }
+.num  { font-variant-numeric:tabular-nums; font-family:monospace; }
+.bar  { height:8px; background:var(--accent); border-radius:2px; min-width:2px; }
+.bar-danger { background:var(--red); }
+
+.two-col { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+
+.badge { display:inline-block; padding:3px 9px; border-radius:12px;
+         font-size:12px; font-weight:700; margin-right:6px; }
+.badge-red   { background:#4a1515; color:var(--red); }
+.badge-green { background:#0e2e1a; color:var(--green); }
+
+.reg-list, .imp-list { margin:8px 0 8px 20px; font-size:13px; }
+.reg-list li { color:var(--red); }
+.imp-list li { color:var(--green); }
+
+.glossary { display:grid; grid-template-columns:1fr 1fr; gap:0; }
+.gl-term { padding:10px 14px; border-bottom:1px solid var(--border); }
+.gl-term:nth-child(odd) { border-right:1px solid var(--border); }
+.gl-key { font-weight:600; color:var(--accent); font-size:13px; margin-bottom:3px; }
+.gl-val { color:var(--muted); font-size:12px; line-height:1.5; }
+
+details summary { cursor:pointer; color:var(--accent); font-size:13px; padding:4px 0; }
+details { background:var(--card); border:1px solid var(--border); border-radius:6px;
+          padding:8px 12px; margin-bottom:8px; }
+
+@media(max-width:900px) {
+  .charts-grid, .two-col, .glossary { grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>☕ JFR Performance Report &nbsp;·&nbsp; may18_user_2.jfr-20260519-112047</h1>
+  <div class="meta">
+    <span>📁 <strong>File:</strong> may18_user_2.jfr</span>
+    <span>🕐 <strong>Start:</strong> 2026-05-18 19:47:19 (UTC)</span>
+    <span>⏱ <strong>Duration:</strong> 1m 30s</span>
+    <span>🏷 <strong>App package:</strong> c.a.j.migration = com.atlassian.jira.migration</span>
+    <span style="color:var(--muted)">Generated: 2026-05-19T11:20:47Z</span>
+  </div>
+</header>
+<main>
+
+
+<section>
+  <h2>📊 Metrics vs Baseline <span style='font-size:12px;font-weight:400;color:var(--muted)'>(baseline: <code>perf_v2/baselines/project_export_baseline.json</code> · label: <em>project_export_baseline</em>)</span></h2>
+  <span class="badge badge-red">4 Regression(s)</span>
+  <ul class='reg-list'><li>DB avg latency (ms): +318.1% (threshold 30.0%)</li><li>Thread park total: +10502.8% (threshold 30.0%)</li><li>Monitor wait total: +9776.3% (threshold 30.0%)</li><li>Exceptions: +449.7% (threshold 50.0%)</li></ul>
+  <details><summary>Improvements (6)</summary><ul class='imp-list'><li>JVM CPU avg %: -11.7%</li><li>Heap delta (GB): -33.6%</li><li>GC total pause: -22.2%</li><li>DB reads: -88.9%</li><li>DB total wait: -53.5%</li><li>API avg latency (ms): -100.0%</li></ul></details>
+  <table class='data-table'><thead><tr><th>Metric</th><th>Baseline</th><th>Current</th><th>Change</th><th>Threshold</th><th>Status</th></tr></thead><tbody><tr><td>JVM CPU avg %</td><td class='num'>18.00%</td><td class='num'>15.90%</td><td class='num' style='color:var(--green)'>-11.7%</td><td style='color:var(--muted);font-size:11px'>30.0%</td><td>🟢 improvement</td></tr><tr><td>Heap peak (GB)</td><td class='num'>3.500 GB</td><td class='num'>3.544 GB</td><td class='num' style=''>+1.3%</td><td style='color:var(--muted);font-size:11px'>30.0%</td><td>✅ ok</td></tr><tr><td>Heap delta (GB)</td><td class='num'>0.500 GB</td><td class='num'>0.332 GB</td><td class='num' style='color:var(--green)'>-33.6%</td><td style='color:var(--muted);font-size:11px'>30.0%</td><td>🟢 improvement</td></tr><tr><td>GC total pause</td><td class='num'>14.00s</td><td class='num'>10.89s</td><td class='num' style='color:var(--green)'>-22.2%</td><td style='color:var(--muted);font-size:11px'>30.0%</td><td>🟢 improvement</td></tr><tr><td>GC full/old count</td><td class='num'>0</td><td class='num'>2</td><td class='num' style=''>—</td><td style='color:var(--muted);font-size:11px'>0.0%</td><td>⚪ no_baseline</td></tr><tr><td>DB reads</td><td class='num'>900</td><td class='num'>100</td><td class='num' style='color:var(--green)'>-88.9%</td><td style='color:var(--muted);font-size:11px'>20.0%</td><td>🟢 improvement</td></tr><tr><td>DB avg latency (ms)</td><td class='num'>40ms</td><td class='num'>167ms</td><td class='num' style='color:var(--red);font-weight:700'>+318.1%</td><td style='color:var(--muted);font-size:11px'>30.0%</td><td>🔴 regression</td></tr><tr><td>DB total wait</td><td class='num'>36.00s</td><td class='num'>16.72s</td><td class='num' style='color:var(--green)'>-53.5%</td><td style='color:var(--muted);font-size:11px'>20.0%</td><td>🟢 improvement</td></tr><tr><td>API avg latency (ms)</td><td class='num'>600ms</td><td class='num'>0</td><td class='num' style='color:var(--green)'>-100.0%</td><td style='color:var(--muted);font-size:11px'>30.0%</td><td>🟢 improvement</td></tr><tr><td>Thread park total</td><td class='num'>2.0m</td><td class='num'>3.5h</td><td class='num' style='color:var(--red);font-weight:700'>+10502.8%</td><td style='color:var(--muted);font-size:11px'>30.0%</td><td>🔴 regression</td></tr><tr><td>Monitor wait total</td><td class='num'>7.00s</td><td class='num'>11.5m</td><td class='num' style='color:var(--red);font-weight:700'>+9776.3%</td><td style='color:var(--muted);font-size:11px'>30.0%</td><td>🔴 regression</td></tr><tr><td>Peak threads</td><td class='num'>380</td><td class='num'>378</td><td class='num' style=''>-0.5%</td><td style='color:var(--muted);font-size:11px'>20.0%</td><td>✅ ok</td></tr><tr><td>Exceptions</td><td class='num'>15,000</td><td class='num'>82,462</td><td class='num' style='color:var(--red);font-weight:700'>+449.7%</td><td style='color:var(--muted);font-size:11px'>50.0%</td><td>🔴 regression</td></tr></tbody></table>
+</section>
+
+<section>
+  <h2>⚡ Key Performance Indicators <span style="font-size:11px;font-weight:400;color:var(--muted)">— click any card for details</span></h2>
+  <div class="kpi-grid">
+    <div class='kpi ok' onclick="showKpi('kpi-0')"><div class='label'>JVM CPU avg</div><div class='value'>15.9%</div><div class='sub'>peak 58.9%</div><div class='hint'>click for details ↗</div></div>
+    <div class='kpi ' onclick="showKpi('kpi-1')"><div class='label'>Machine CPU avg</div><div class='value'>41.2%</div><div class='sub'>all cores + OS</div><div class='hint'>click for details ↗</div></div>
+    <div class='kpi ' onclick="showKpi('kpi-2')"><div class='label'>Heap peak (used)</div><div class='value'>3.54 GB</div><div class='sub'>start 3.21 GB · end 1.86 GB · -Xmx 4096M</div><div class='hint'>click for details ↗</div></div>
+    <div class='kpi ' onclick="showKpi('kpi-3')"><div class='label'>Heap delta</div><div class='value'>0.332 GB</div><div class='sub'>peak − start of recording</div><div class='hint'>click for details ↗</div></div>
+    <div class='kpi warn' onclick="showKpi('kpi-4')"><div class='label'>GC count</div><div class='value'>8</div><div class='sub'>Young: 6 / Full: 2</div><div class='hint'>click for details ↗</div></div>
+    <div class='kpi caution' onclick="showKpi('kpi-5')"><div class='label'>GC total pause</div><div class='value'>10.89s</div><div class='sub'>= 12.1% of recording</div><div class='hint'>click for details ↗</div></div>
+    <div class='kpi ' onclick="showKpi('kpi-6')"><div class='label'>GC max pause</div><div class='value'>5.23s</div><div class='sub'>single longest stop-the-world</div><div class='hint'>click for details ↗</div></div>
+    <div class='kpi ok' onclick="showKpi('kpi-7')"><div class='label'>DB queries</div><div class='value'>100</div><div class='sub'>avg 167ms · p95 992ms</div><div class='hint'>click for details ↗</div></div>
+    <div class='kpi ' onclick="showKpi('kpi-8')"><div class='label'>DB total wait</div><div class='value'>16.72s</div><div class='sub'>max single 2.18s</div><div class='hint'>click for details ↗</div></div>
+    <div class='kpi ' onclick="showKpi('kpi-9')"><div class='label'>Thread park total</div><div class='value'>3.5h</div><div class='sub'>3,986 events · avg 3.19s</div><div class='hint'>click for details ↗</div></div>
+    <div class='kpi ' onclick="showKpi('kpi-10')"><div class='label'>Monitor wait</div><div class='value'>11.5m</div><div class='sub'>52 events · avg 13.30s</div><div class='hint'>click for details ↗</div></div>
+    <div class='kpi ' onclick="showKpi('kpi-11')"><div class='label'>Peak threads</div><div class='value'>378</div><div class='sub'>avg 376 active</div><div class='hint'>click for details ↗</div></div>
+    <div class='kpi ' onclick="showKpi('kpi-12')"><div class='label'>Exceptions</div><div class='value'>82,462</div><div class='sub'>during recording window</div><div class='hint'>click for details ↗</div></div>
+  </div>
+</section>
+
+<section>
+  <h2>📈 Time-Series (relative to recording start)</h2>
+  <div class="charts-grid">
+    <div class="chart-card"><h3>CPU Load — JVM vs Machine (%)</h3><canvas id="chart-cpu"></canvas></div>
+    <div class="chart-card"><h3>Heap Used (GB)</h3><canvas id="chart-heap"></canvas></div>
+    <div class="chart-card"><h3>Active Threads</h3><canvas id="chart-thr"></canvas></div>
+    <div class="chart-card"><h3>Network I/O — OS-level (MB/s)</h3><canvas id="chart-net"></canvas></div>
+    <div class="chart-card">
+      <h3>DB (PostgreSQL) — calls/10s &amp; avg latency (ms)</h3>
+      <p style="color:var(--muted);font-size:11px;margin:0 0 6px">Blue = call count/10s (left axis) · Orange = avg latency ms (right axis)</p>
+      <canvas id="chart-db-io"></canvas>
+    </div>
+    <div class="chart-card">
+      <h3>External API (HTTPS) — calls/10s &amp; avg latency (ms)</h3>
+      <p style="color:var(--muted);font-size:11px;margin:0 0 6px">Purple = call count/10s (left axis) · Red = avg latency ms (right axis)</p>
+      <canvas id="chart-api-io"></canvas>
+    </div>
+  </div>
+</section>
+
+
+
+<section>
+  <h2>🗄️ Database I/O — PostgreSQL (port 5432)</h2>
+  <div class="two-col">
+    <div>
+      <table class='data-table'><tbody><tr><td style='color:var(--muted);white-space:nowrap'>Queries</td><td style='font-family:monospace'>100</td></tr><tr><td style='color:var(--muted);white-space:nowrap'>Total I/O wait (all threads)</td><td style='font-family:monospace'>16.72s</td></tr><tr><td style='color:var(--muted);white-space:nowrap'>Avg latency</td><td style='font-family:monospace'>167ms</td></tr><tr><td style='color:var(--muted);white-space:nowrap'>p95 latency</td><td style='font-family:monospace'>992ms</td></tr><tr><td style='color:var(--muted);white-space:nowrap'>Max latency</td><td style='font-family:monospace'>2.18s</td></tr><tr><td style='color:var(--muted);white-space:nowrap'>Total bytes</td><td style='font-family:monospace'>500.0 B</td></tr></tbody></table>
+      <h3 style="margin-top:14px">By thread pool</h3>
+      <table class='data-table'><thead><tr><th>Thread pool</th><th>Queries</th><th>Total wait</th><th>Avg</th></tr></thead><tbody><tr><td class='mono' style='font-size:11px'>ForkJoinPool.commonPool-worker</td><td class='num'>74</td><td class='num'>11.03s</td><td class='num'>149ms</td></tr><tr><td class='mono' style='font-size:11px'>JCMA-ScopedUserExtractor-pool-13-thread</td><td class='num'>21</td><td class='num'>5.38s</td><td class='num'>256ms</td></tr><tr><td class='mono' style='font-size:11px'>http-nio-8080-exec</td><td class='num'>1</td><td class='num'>167ms</td><td class='num'>167ms</td></tr><tr><td class='mono' style='font-size:11px'>JCMA-ParentLinksRetriever-pool-10-thread</td><td class='num'>2</td><td class='num'>75ms</td><td class='num'>37ms</td></tr><tr><td class='mono' style='font-size:11px'>PlatformInstrumentsLoggingService</td><td class='num'>2</td><td class='num'>74ms</td><td class='num'>37ms</td></tr></tbody></table>
+    </div>
+    <div>
+      <h3>Top 10 Slowest Round-Trips</h3>
+      <table class="data-table">
+        <thead><tr><th>Duration</th><th>Bytes</th><th>Thread</th></tr></thead>
+        <tbody><tr><td class='num'>2.18s</td><td class='num'>5.0 B</td><td class='mono' style='font-size:11px;color:var(--muted)'>JCMA-ScopedUserExtractor-pool-13-thread-1</td></tr><tr><td class='num'>1.67s</td><td class='num'>5.0 B</td><td class='mono' style='font-size:11px;color:var(--muted)'>ForkJoinPool.commonPool-worker-38</td></tr><tr><td class='num'>1.19s</td><td class='num'>5.0 B</td><td class='mono' style='font-size:11px;color:var(--muted)'>ForkJoinPool.commonPool-worker-39</td></tr><tr><td class='num'>1.01s</td><td class='num'>5.0 B</td><td class='mono' style='font-size:11px;color:var(--muted)'>ForkJoinPool.commonPool-worker-38</td></tr><tr><td class='num'>992ms</td><td class='num'>5.0 B</td><td class='mono' style='font-size:11px;color:var(--muted)'>ForkJoinPool.commonPool-worker-39</td></tr><tr><td class='num'>587ms</td><td class='num'>5.0 B</td><td class='mono' style='font-size:11px;color:var(--muted)'>ForkJoinPool.commonPool-worker-38</td></tr><tr><td class='num'>539ms</td><td class='num'>5.0 B</td><td class='mono' style='font-size:11px;color:var(--muted)'>ForkJoinPool.commonPool-worker-39</td></tr><tr><td class='num'>485ms</td><td class='num'>5.0 B</td><td class='mono' style='font-size:11px;color:var(--muted)'>ForkJoinPool.commonPool-worker-39</td></tr><tr><td class='num'>461ms</td><td class='num'>5.0 B</td><td class='mono' style='font-size:11px;color:var(--muted)'>ForkJoinPool.commonPool-worker-38</td></tr><tr><td class='num'>282ms</td><td class='num'>5.0 B</td><td class='mono' style='font-size:11px;color:var(--muted)'>ForkJoinPool.commonPool-worker-39</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>🌐 All I/O Endpoints — sorted by total wait</h2>
+  <table class="data-table">
+    <thead><tr><th>Endpoint</th><th>Calls</th><th>Total wait</th><th>Avg</th><th>p95</th><th>Max</th><th>Bytes in</th></tr></thead>
+    <tbody><tr><td class='mono'>🗄️ DB instenv-723366-r46w.cys9vcmootvs.ap-southeast-2.rds.amazonaws.com:5432</td><td class='num'>100</td><td class='num'>16.72s</td><td class='num'>167ms</td><td class='num'>992ms</td><td class='num'>2.18s</td><td class='num'>500.0 B</td></tr></tbody>
+  </table>
+</section>
+
+<section>
+  <h2>🔒 Thread Blocking</h2>
+  <div class="two-col">
+    <div>
+      <h3>Thread Park — by cause</h3>
+      <p style="color:var(--muted);font-size:11px;margin-bottom:6px">✅ Idle parks are normal. Only ⚠️ Semaphore or 🔴 App lock rows need investigation.</p>
+      <table class="data-table">
+        <thead><tr><th>Category</th><th>Count</th><th>Total</th><th>% share</th><th>Avg</th></tr></thead>
+        <tbody><tr><td style='color:var(--muted)'>✅ Idle thread-pool <span style='font-size:10px;color:var(--muted)'>Normal — threads waiting for work</span></td><td class='num'>3,965</td><td class='num'>3.5h</td><td class='num'>98.3%</td><td class='num'>3.15s</td></tr><tr><td style='color:var(--muted)'>⚪ Other</td><td class='num'>21</td><td class='num'>3.6m</td><td class='num'>1.7%</td><td class='num'>10.30s</td></tr></tbody>
+      </table>
+    </div>
+    <div>
+      <h3>Monitor Wait</h3>
+      <table class='data-table'><tbody><tr><td style='color:var(--muted);white-space:nowrap'>Events</td><td style='font-family:monospace'>52</td></tr><tr><td style='color:var(--muted);white-space:nowrap'>Total blocked</td><td style='font-family:monospace'>11.5m</td></tr><tr><td style='color:var(--muted);white-space:nowrap'>Avg per event</td><td style='font-family:monospace'>13.30s</td></tr><tr><td style='color:var(--muted);white-space:nowrap'>Max single</td><td style='font-family:monospace'>1.7m</td></tr></tbody></table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>🔥 CPU Hotspots
+    <span style="font-size:11px;font-weight:400;color:var(--muted)" title="JFR takes a stack snapshot every 20ms (ExecutionSample). The top frame of each snapshot = the method occupying the CPU at that instant. Samples column = how many snapshots that method was on top. Share bar = its fraction of total snapshots. Higher share → more CPU time.">
+      ⓘ JFR samples the top stack frame every 20ms. Samples = how many times that method was seen on top. Share = its % of total CPU snapshots.
+    </span>
+  </h2>
+  <div class="two-col">
+    <div>
+      <h3>Top methods — all (663 samples)</h3>
+      <table class='data-table'><thead><tr><th>Name</th><th>Samples</th><th>Share of total</th></tr></thead><tbody><tr><td class='mono'>java.util.HashMap$TreeNode.getTreeNode</td><td>68</td><td style='width:40%'><div class='bar' style='width:18.2%'></div></td></tr><tr><td class='mono'>java.util.HashMap.putVal</td><td>60</td><td style='width:40%'><div class='bar' style='width:16.1%'></div></td></tr><tr><td class='mono'>java.util.HashMap.getNode</td><td>53</td><td style='width:40%'><div class='bar' style='width:14.2%'></div></td></tr><tr><td class='mono'>org.apache.lucene.codecs.compressing.LZ4.decompress</td><td>20</td><td style='width:40%'><div class='bar' style='width:5.4%'></div></td></tr><tr><td class='mono'>com.google.common.collect.RegularImmutableSet.contains</td><td>18</td><td style='width:40%'><div class='bar' style='width:4.8%'></div></td></tr><tr><td class='mono'>java.util.HashMap$HashIterator.nextNode</td><td>14</td><td style='width:40%'><div class='bar' style='width:3.8%'></div></td></tr><tr><td class='mono'>org.ofbiz.core.entity.EntityUtil.filterByAnd</td><td>13</td><td style='width:40%'><div class='bar' style='width:3.5%'></div></td></tr><tr><td class='mono'>org.apache.lucene.store.RAMInputStream.readBytes</td><td>13</td><td style='width:40%'><div class='bar' style='width:3.5%'></div></td></tr><tr><td class='mono'>java.nio.ByteBuffer.getArray</td><td>13</td><td style='width:40%'><div class='bar' style='width:3.5%'></div></td></tr><tr><td class='mono'>java.util.concurrent.ConcurrentHashMap.get</td><td>12</td><td style='width:40%'><div class='bar' style='width:3.2%'></div></td></tr><tr><td class='mono'>org.ofbiz.core.entity.EntityListIterator.currentGenericValue</td><td>10</td><td style='width:40%'><div class='bar' style='width:2.7%'></div></td></tr><tr><td class='mono'>java.util.HashMap.resize</td><td>9</td><td style='width:40%'><div class='bar' style='width:2.4%'></div></td></tr><tr><td class='mono'>java.lang.String.<init></td><td>9</td><td style='width:40%'><div class='bar' style='width:2.4%'></div></td></tr><tr><td class='mono'>java.util.Arrays.copyOf</td><td>9</td><td style='width:40%'><div class='bar' style='width:2.4%'></div></td></tr><tr><td class='mono'>java.math.BigDecimal.divideAndRound</td><td>9</td><td style='width:40%'><div class='bar' style='width:2.4%'></div></td></tr></tbody></table>
+    </div>
+    <div>
+      <h3>App-specific
+        <code title="com.atlassian.jira.migration">c.a.j.migration</code>
+        <span style="font-weight:400;font-size:11px;color:var(--muted)">= com.atlassian.jira.migration</span>
+      </h3>
+      <table class='data-table'><thead><tr><th>Name</th><th>Samples</th><th>Share of total</th></tr></thead><tbody><tr><td class='mono'>com.atlassian.jira.migration.export.service.ExportService.findExporter</td><td>5</td><td style='width:40%'><div class='bar' style='width:22.7%'></div></td></tr><tr><td class='mono'>com.atlassian.jira.migration.workers.usersgroups.ScopedUserBulkQueryService.fetchUserRefsWithJdbc</td><td>4</td><td style='width:40%'><div class='bar' style='width:18.2%'></div></td></tr><tr><td class='mono'>com.atlassian.jira.migration.export.core.customfield.CustomFieldValueParser.parseValue</td><td>4</td><td style='width:40%'><div class='bar' style='width:18.2%'></div></td></tr><tr><td class='mono'>com.atlassian.jira.migration.export.core.issue.V2IssueCustomFieldValueExportMapper.hasValuePresentFor</td><td>2</td><td style='width:40%'><div class='bar' style='width:9.1%'></div></td></tr><tr><td class='mono'>com.atlassian.jira.migration.export.core.project.ProjectExporter.hasArchived_delegate$lambda$45$lambda$43$lambda$42</td><td>1</td><td style='width:40%'><div class='bar' style='width:4.5%'></div></td></tr><tr><td class='mono'>com.atlassian.jira.migration.export.ExportFacade.exportProjectUsersAndGroups$lambda$53$lambda$50</td><td>1</td><td style='width:40%'><div class='bar' style='width:4.5%'></div></td></tr><tr><td class='mono'>com.atlassian.jira.migration.export.core.issue.V2IssueCustomFieldValueExportMapper.hasOnlySingleRankValue</td><td>1</td><td style='width:40%'><div class='bar' style='width:4.5%'></div></td></tr><tr><td class='mono'>com.atlassian.jira.migration.export.core.customfield.CustomFieldDBValueMapPerIssue.get</td><td>1</td><td style='width:40%'><div class='bar' style='width:4.5%'></div></td></tr><tr><td class='mono'>com.atlassian.jira.migration.export.core.customfield.CustomFieldValueExportHelper.isSupportedAppVendorCF</td><td>1</td><td style='width:40%'><div class='bar' style='width:4.5%'></div></td></tr><tr><td class='mono'>com.atlassian.jira.migration.export.utils.AppVendorMinimalContext.<init></td><td>1</td><td style='width:40%'><div class='bar' style='width:4.5%'></div></td></tr><tr><td class='mono'>com.atlassian.jira.migration.export.core.issue.V2IssueCustomFieldValueExportMapper.mapCustomFieldValuesWithPrefetchedData</td><td>1</td><td style='width:40%'><div class='bar' style='width:4.5%'></div></td></tr></tbody></table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>🧠 Memory &amp; Allocation
+    <span style="font-size:11px;font-weight:400;color:var(--muted)">
+      ⓘ JFR samples object allocations statistically (not every allocation). "Sampled MB" is an estimate, not exact total. Callers show which app method triggered each allocation.
+    </span>
+  </h2>
+  <p style="color:var(--muted);font-size:11px;margin:-8px 0 12px">
+    <strong>JVM type notation:</strong>
+    <code>[B</code> = byte array &nbsp;·&nbsp;
+    <code>[Ljava.lang.Object;</code> = Object[] array &nbsp;·&nbsp;
+    <code>[C</code> = char array &nbsp;·&nbsp;
+    <code>[I</code> = int array &nbsp;·&nbsp;
+    These are JVM internal names for arrays. High byte[] allocation = JSON/HTTP serialization or DB result buffers.
+  </p>
+  <div class="two-col">
+    <div>
+      <h3>What is being allocated — by sampled MB
+        <span style="font-weight:400;font-size:11px;color:var(--muted)" title="Each row = one Java class. Sampled MB = estimated memory allocated (JFR samples statistically, not every object). Samples = number of allocation events caught. High MB + low samples = large objects. High samples + low MB = many small short-lived objects.">ⓘ</span>
+      </h3>
+      <table class='data-table'><thead><tr><th>Class</th><th>Sampled MB</th><th>Samples</th></tr></thead><tbody><tr><td class='mono'>[B</td><td class='num'>1264.5 MB</td><td class='num'>2,016</td></tr><tr><td class='mono'>java.util.HashMap$Node</td><td class='num'>1157.7 MB</td><td class='num'>1,532</td></tr><tr><td class='mono'>[Ljava.lang.Object;</td><td class='num'>736.3 MB</td><td class='num'>1,212</td></tr><tr><td class='mono'>java.util.LinkedHashMap$Entry</td><td class='num'>458.6 MB</td><td class='num'>459</td></tr><tr><td class='mono'>[Ljava.util.HashMap$Node;</td><td class='num'>400.0 MB</td><td class='num'>558</td></tr><tr><td class='mono'>[I</td><td class='num'>310.2 MB</td><td class='num'>412</td></tr><tr><td class='mono'>java.math.BigDecimal</td><td class='num'>267.2 MB</td><td class='num'>286</td></tr><tr><td class='mono'>java.math.BigInteger</td><td class='num'>218.9 MB</td><td class='num'>234</td></tr><tr><td class='mono'>net.sf.ehcache.Element</td><td class='num'>214.1 MB</td><td class='num'>420</td></tr><tr><td class='mono'>java.util.HashMap</td><td class='num'>202.4 MB</td><td class='num'>304</td></tr><tr><td class='mono'>java.lang.Long</td><td class='num'>181.9 MB</td><td class='num'>233</td></tr><tr><td class='mono'>java.util.regex.Matcher</td><td class='num'>162.7 MB</td><td class='num'>119</td></tr><tr><td class='mono'>[[B</td><td class='num'>152.2 MB</td><td class='num'>145</td></tr><tr><td class='mono'>java.util.ArrayList</td><td class='num'>139.2 MB</td><td class='num'>204</td></tr><tr><td class='mono'>java.lang.String</td><td class='num'>135.8 MB</td><td class='num'>287</td></tr></tbody></table>
+    </div>
+    <div>
+      <h3>Who is allocating — <code title="com.atlassian.jira.migration">c.a.j.migration</code>
+        <span style="font-weight:400;font-size:11px;color:var(--muted)">= com.atlassian.jira.migration</span> callers
+        <span style="font-weight:400;font-size:11px;color:var(--muted)" title="JFR walks the stack trace of each allocation sample and finds the first frame inside your app-package. That method is the 'caller'. Top types column: ClassName(N) where N = number of allocation samples from that caller for that type.">ⓘ</span>
+      </h3>
+      <table class='data-table'><thead><tr><th>App method (caller)</th><th>Sampled MB</th><th>Top types — ClassName(samples)</th></tr></thead><tbody><tr><td class='mono' style='font-size:11px'>com.atlassian.jira.migration.workers.usersgroups.ScopedUserBulkQueryService.parseUserKeyBucket$jira_migration_plugin</td><td>94.8 MB</td><td style='font-size:11px;color:var(--muted)'>TransformingSequence$iterator$1(17), TransformingSequence(16)</td></tr><tr><td class='mono' style='font-size:11px'>com.atlassian.jira.migration.export.utils.ExportFilters.getSupportedCustomFieldTypes</td><td>84.8 MB</td><td style='font-size:11px;color:var(--muted)'>Object;(48), LinkedHashMap(21)</td></tr><tr><td class='mono' style='font-size:11px'>com.atlassian.jira.migration.export.utils.CustomFieldUtils.getCloudAppTypeKeyMapping</td><td>79.0 MB</td><td style='font-size:11px;color:var(--muted)'>Object;(49), ArrayList(22)</td></tr><tr><td class='mono' style='font-size:11px'>com.atlassian.jira.migration.export.utils.AppVendorMinimalContext.<init></td><td>52.2 MB</td><td style='font-size:11px;color:var(--muted)'>HashMap(27), ArrayList$Itr(13)</td></tr><tr><td class='mono' style='font-size:11px'>com.atlassian.jira.migration.export.service.UsersExportService.resolveUserRefCallChain</td><td>51.2 MB</td><td style='font-size:11px;color:var(--muted)'>StackTraceElement(75), StackTraceElement;(12)</td></tr><tr><td class='mono' style='font-size:11px'>com.atlassian.jira.migration.export.model.JiraToolkitConstants.supportedFieldTypes</td><td>37.2 MB</td><td style='font-size:11px;color:var(--muted)'>LinkedHashMap(19), LinkedHashMap$LinkedKeyIterator(7)</td></tr><tr><td class='mono' style='font-size:11px'>com.atlassian.jira.migration.export.model.JiraToolkitConstants.supportedToolkitFields</td><td>27.1 MB</td><td style='font-size:11px;color:var(--muted)'>LinkedHashMap(6), String;(6)</td></tr><tr><td class='mono' style='font-size:11px'>com.atlassian.jira.migration.export.model.JiraToolkitConstants.messageFieldTypes</td><td>20.1 MB</td><td style='font-size:11px;color:var(--muted)'>LinkedHashMap(11), String;(5)</td></tr><tr><td class='mono' style='font-size:11px'>com.atlassian.jira.migration.export.core.customfield.CustomFieldValueExportHelper.exportCustomFieldValueForIssue</td><td>19.7 MB</td><td style='font-size:11px;color:var(--muted)'>DefaultDeserializationContext$Impl(7), TokenBuffer(5)</td></tr><tr><td class='mono' style='font-size:11px'>com.atlassian.jira.migration.export.service.ExportService.findExporter</td><td>17.5 MB</td><td style='font-size:11px;color:var(--muted)'>ConcurrentHashMap$MapEntry(21), ConcurrentHashMap$EntryIterator(5)</td></tr><tr><td class='mono' style='font-size:11px'>com.atlassian.jira.migration.workers.usersgroups.ScopedUserBulkQueryService.fetchReferencedUserRefsForProject</td><td>15.3 MB</td><td style='font-size:11px;color:var(--muted)'>Object;(4)</td></tr><tr><td class='mono' style='font-size:11px'>com.atlassian.jira.migration.export.framework.MriExtensionsKt.mri</td><td>15.2 MB</td><td style='font-size:11px;color:var(--muted)'>MRI(9), [B(4)</td></tr><tr><td class='mono' style='font-size:11px'>com.atlassian.jira.migration.export.core.issue.V2IssueCustomFieldValueExportMapper.mapCustomFieldValuesWithPrefetchedData</td><td>14.5 MB</td><td style='font-size:11px;color:var(--muted)'>Pair(5), Object;(3)</td></tr><tr><td class='mono' style='font-size:11px'>com.atlassian.jira.migration.workers.usersgroups.ScopedUserBulkQueryService.fetchUserRefsWithJdbc</td><td>13.9 MB</td><td style='font-size:11px;color:var(--muted)'>Collections$1(16), Long(15)</td></tr><tr><td class='mono' style='font-size:11px'>com.atlassian.jira.migration.export.utils.TextSanitizer.unescapeBracesInWikiLinks</td><td>10.8 MB</td><td style='font-size:11px;color:var(--muted)'>[I(7), Pattern$GroupHead;(3)</td></tr></tbody></table>
+    </div>
+  </div>
+  <h3 style="margin-top:16px">Who is allocating — <code title="—">—</code>
+    <span style="font-weight:400;font-size:11px;color:var(--muted)">= —</span> migration callers
+    <span style="font-weight:400;font-size:11px;color:var(--muted)" title="Same as above but filtered to the narrower migration package only. Helps you see exactly which migration code paths are driving allocations, separately from the broader Atlassian framework code.">ⓘ</span>
+  </h3>
+  <table class='data-table'><thead><tr><th>Migration method (caller)</th><th>Sampled MB</th><th>Top types — ClassName(samples)</th></tr></thead><tbody><tr><td colspan=3 style='color:var(--muted)'>No data — pass --migration-package to enable</td></tr></tbody></table>
+</section>
+
+<section>
+  <h2>⚠️ Exceptions</h2>
+  <table class='data-table'><tbody><tr><td style='color:var(--muted);white-space:nowrap'>Exceptions during recording</td><td style='font-family:monospace'>82,462</td></tr></tbody></table>
+  <table class='data-table'><thead><tr><th>Name</th><th>Samples</th><th>Share of total</th></tr></thead><tbody><tr><td class='mono'>RuntimeException</td><td>45,952</td><td style='width:40%'><div class='bar' style='width:54.5%'></div></td></tr><tr><td class='mono'>ClassNotFoundException</td><td>37,140</td><td style='width:40%'><div class='bar' style='width:44.1%'></div></td></tr><tr><td class='mono'>NumberFormatException</td><td>589</td><td style='width:40%'><div class='bar' style='width:0.7%'></div></td></tr><tr><td class='mono'>NullPointerException</td><td>316</td><td style='width:40%'><div class='bar' style='width:0.4%'></div></td></tr><tr><td class='mono'>ImmutableCustomField$TypeNotFoundException</td><td>117</td><td style='width:40%'><div class='bar' style='width:0.1%'></div></td></tr><tr><td class='mono'>NoSuchMethodException</td><td>82</td><td style='width:40%'><div class='bar' style='width:0.1%'></div></td></tr><tr><td class='mono'>UserNotFoundException</td><td>24</td><td style='width:40%'><div class='bar' style='width:0.0%'></div></td></tr><tr><td class='mono'>UnknownHostException</td><td>12</td><td style='width:40%'><div class='bar' style='width:0.0%'></div></td></tr><tr><td class='mono'>NotCompliantMBeanException</td><td>10</td><td style='width:40%'><div class='bar' style='width:0.0%'></div></td></tr><tr><td class='mono'>IllegalStateException</td><td>7</td><td style='width:40%'><div class='bar' style='width:0.0%'></div></td></tr><tr><td class='mono'>ArrayIndexOutOfBoundsException</td><td>6</td><td style='width:40%'><div class='bar' style='width:0.0%'></div></td></tr><tr><td class='mono'>ShortBufferException</td><td>6</td><td style='width:40%'><div class='bar' style='width:0.0%'></div></td></tr><tr><td class='mono'>ProviderException</td><td>6</td><td style='width:40%'><div class='bar' style='width:0.0%'></div></td></tr><tr><td class='mono'>SocketException</td><td>6</td><td style='width:40%'><div class='bar' style='width:0.0%'></div></td></tr><tr><td class='mono'>UnixException</td><td>5</td><td style='width:40%'><div class='bar' style='width:0.0%'></div></td></tr></tbody></table>
+</section>
+
+<section style="border:1px solid var(--border);border-radius:8px;padding:16px;opacity:0.8">
+  <h2 style="color:var(--muted)">ℹ️ FYI — GC</h2>
+  <div class="two-col">
+    <div>
+      <table class='data-table'><tbody><tr><td style='color:var(--muted);white-space:nowrap'>Heap at start</td><td style='font-family:monospace'>3.212 GB</td></tr><tr><td style='color:var(--muted);white-space:nowrap'>Heap peak</td><td style='font-family:monospace'>3.544 GB</td></tr><tr><td style='color:var(--muted);white-space:nowrap'>Heap at end</td><td style='font-family:monospace'>1.861 GB</td></tr><tr><td style='color:var(--muted);white-space:nowrap'>Heap delta</td><td style='font-family:monospace'>0.332 GB</td></tr><tr><td style='color:var(--muted);white-space:nowrap'>GC Young/Full</td><td style='font-family:monospace'>8 (6 / 2)</td></tr><tr><td style='color:var(--muted);white-space:nowrap'>GC total pause</td><td style='font-family:monospace'>10.89s = 12.1% of run</td></tr><tr><td style='color:var(--muted);white-space:nowrap'>GC max single</td><td style='font-family:monospace'>5.23s</td></tr></tbody></table>
+    </div>
+    <div style="font-size:12px;color:var(--muted);padding-top:8px">
+      <strong>Full GC = 2</strong> — ⚠️ Full GCs freeze all threads.<br><br>
+      <strong>GC pause = 12.1%</strong> — ⚠️ > 5%, impacts throughput.<br><br>
+      Tuning: increase -Xmx · switch to ZGC (<code>-XX:+UseZGC</code>) · fix heap delta growth
+    </div>
+  </div>
+</section>
+
+<section id="glossary">
+  <h2>📖 Glossary</h2>
+  <div class="glossary"><div class='gl-term'><div class='gl-key'>JVM CPU avg %</div><div class='gl-val'>Percentage of wall-clock CPU time the Java process actively used. 100% = fully occupying one core.</div></div><div class='gl-term'><div class='gl-key'>Machine CPU avg %</div><div class='gl-val'>Total CPU utilisation across ALL cores on the host, including OS and other processes.</div></div><div class='gl-term'><div class='gl-key'>Heap peak (GB)</div><div class='gl-val'>Highest amount of Java heap memory used by live objects. NOT your -Xmx setting.</div></div><div class='gl-term'><div class='gl-key'>Heap delta (GB)</div><div class='gl-val'>heap_peak − heap_start: net memory growth from start to peak of recording.</div></div><div class='gl-term'><div class='gl-key'>GC full/old count</div><div class='gl-val'>Full GC events stop ALL threads. Even 1 during migration is a warning.</div></div><div class='gl-term'><div class='gl-key'>GC total pause</div><div class='gl-val'>Sum of all stop-the-world GC time. Migration makes zero progress during this. Target: <2% of run.</div></div><div class='gl-term'><div class='gl-key'>Socket reads (DB)</div><div class='gl-val'>Each socket read on port 5432 = one DB round-trip. Count ≈ queries.</div></div><div class='gl-term'><div class='gl-key'>Socket reads (API / other)</div><div class='gl-val'>Socket reads to HTTPS endpoints (port 443): Atlassian APIs, S3, etc.</div></div><div class='gl-term'><div class='gl-key'>Network I/O (OS level)</div><div class='gl-val'>Aggregate bytes-per-second flowing in/out of the host NIC.</div></div><div class='gl-term'><div class='gl-key'>Thread park</div><div class='gl-val'>Thread voluntarily suspends waiting for a signal. Expected for idle thread-pool threads.</div></div><div class='gl-term'><div class='gl-key'>Monitor wait</div><div class='gl-val'>Thread called Object.wait() — used in connection pools. High avg = starvation.</div></div><div class='gl-term'><div class='gl-key'>Allocation samples</div><div class='gl-val'>Statistical profile of object allocations. Caller table shows which app method triggered each allocation.</div></div></div>
+</section>
+
+</main>
+<div id="kpi-overlay" onclick="hideKpi(event)"></div>
+<div class='kpi-detail' id='kpi-0'><button class='close-btn' onclick='hideKpi(event)'>✕</button><h4>JVM CPU avg</h4><div class='kd-value'>15.9%</div><div class='kd-sub'>peak 58.9%</div><div class='kd-body'>% of one CPU core consumed by the JVM. 100% = one core fully busy.</div><div class='kd-ideal'>✅ Ideal: Below 50% avg.</div><div class='kd-warn'>⚠️ Warning: Sustained >80% = migration is CPU-bound. Check hotspots.</div></div>
+<div class='kpi-detail' id='kpi-1'><button class='close-btn' onclick='hideKpi(event)'>✕</button><h4>Machine CPU avg</h4><div class='kd-value'>41.2%</div><div class='kd-sub'>all cores + OS</div><div class='kd-body'>Total host CPU across ALL cores. Large gap above JVM CPU = noisy neighbour.</div><div class='kd-ideal'>✅ Ideal: Proportional to JVM CPU.</div><div class='kd-warn'>⚠️ Warning: Large gap = noisy neighbour or OS I/O wait.</div></div>
+<div class='kpi-detail' id='kpi-2'><button class='close-btn' onclick='hideKpi(event)'>✕</button><h4>Heap peak (used)</h4><div class='kd-value'>3.54 GB</div><div class='kd-sub'>start 3.21 GB · end 1.86 GB · -Xmx 4096M</div><div class='kd-body'>Max heap by live objects. Your -Xmx is 4096M. Peak here is 3.54 GB — that is 87% of your 4 GB limit.</div><div class='kd-ideal'>✅ Ideal: Comfortably below -Xmx (4096M).</div><div class='kd-warn'>⚠️ Warning: Near -Xmx → OutOfMemoryError risk.</div></div>
+<div class='kpi-detail' id='kpi-3'><button class='close-btn' onclick='hideKpi(event)'>✕</button><h4>Heap delta</h4><div class='kd-value'>0.332 GB</div><div class='kd-sub'>peak − start of recording</div><div class='kd-body'>Net heap growth from start to peak. Near zero = GC kept up with allocations. A large delta on run 1 is normal (JVM cold start, class loading). Watch for delta growing run-over-run — that signals a memory leak.</div><div class='kd-ideal'>✅ Ideal: Close to 0 GB after warm-up.</div><div class='kd-warn'>⚠️ Warning: >1 GB + Full GC = memory pressure. Compare across runs, not just first run.</div></div>
+<div class='kpi-detail' id='kpi-4'><button class='close-btn' onclick='hideKpi(event)'>✕</button><h4>GC count</h4><div class='kd-value'>8</div><div class='kd-sub'>Young: 6 / Full: 2</div><div class='kd-body'>Young GC = fast, expected. Full GC = stop-the-world, freezes all threads.</div><div class='kd-ideal'>✅ Ideal: Full GC count = 0.</div><div class='kd-warn'>⚠️ Warning: Full GC = 2. Any Full GC = memory pressure.</div></div>
+<div class='kpi-detail' id='kpi-5'><button class='close-btn' onclick='hideKpi(event)'>✕</button><h4>GC total pause</h4><div class='kd-value'>10.89s</div><div class='kd-sub'>= 12.1% of recording</div><div class='kd-body'>Total time JVM froze for GC. Recording lasted 1m 30s. Zones: &lt;12% ok · 12–30% caution (yellow) · &gt;30% danger (red).</div><div class='kd-ideal'>✅ Ideal: Under 12% of run.</div><div class='kd-warn'>⚠️ Warning: 12.1% of run. &gt;30% = pipeline regression threshold.</div></div>
+<div class='kpi-detail' id='kpi-6'><button class='close-btn' onclick='hideKpi(event)'>✕</button><h4>GC max pause</h4><div class='kd-value'>5.23s</div><div class='kd-sub'>single longest stop-the-world</div><div class='kd-body'>Longest single GC pause.</div><div class='kd-ideal'>✅ Ideal: Under 500ms.</div><div class='kd-warn'>⚠️ Warning: Pauses >2s cause DB/HTTP timeouts.</div></div>
+<div class='kpi-detail' id='kpi-7'><button class='close-btn' onclick='hideKpi(event)'>✕</button><h4>DB queries</h4><div class='kd-value'>100</div><div class='kd-sub'>avg 167ms · p95 992ms</div><div class='kd-body'>TCP reads to PostgreSQL (port 5432). Count ≈ queries.</div><div class='kd-ideal'>✅ Ideal: Proportional to dataset. Avg <100ms.</div><div class='kd-warn'>⚠️ Warning: Avg 167ms. >500ms = slow queries.</div></div>
+<div class='kpi-detail' id='kpi-8'><button class='close-btn' onclick='hideKpi(event)'>✕</button><h4>DB total wait</h4><div class='kd-value'>16.72s</div><div class='kd-sub'>max single 2.18s</div><div class='kd-body'>Total time JVM blocked on DB. Summed across all threads.</div><div class='kd-ideal'>✅ Ideal: DB wait < 30% of recording.</div><div class='kd-warn'>⚠️ Warning: Max single: 2.18s.</div></div>
+<div class='kpi-detail' id='kpi-9'><button class='close-btn' onclick='hideKpi(event)'>✕</button><h4>Thread park total</h4><div class='kd-value'>3.5h</div><div class='kd-sub'>3,986 events · avg 3.19s</div><div class='kd-body'>Total thread park time. Idle thread-pool parks are normal.</div><div class='kd-ideal'>✅ Ideal: Large total is expected. Watch avg per event.</div><div class='kd-warn'>⚠️ Warning: Avg 3.19s. Very long avg = threads waiting on slow producers.</div></div>
+<div class='kpi-detail' id='kpi-10'><button class='close-btn' onclick='hideKpi(event)'>✕</button><h4>Monitor wait</h4><div class='kd-value'>11.5m</div><div class='kd-sub'>52 events · avg 13.30s</div><div class='kd-body'>Time in Object.wait() — connection pool, queues.</div><div class='kd-ideal'>✅ Ideal: Low count, short avg.</div><div class='kd-warn'>⚠️ Warning: High avg = connection pool starvation.</div></div>
+<div class='kpi-detail' id='kpi-11'><button class='close-btn' onclick='hideKpi(event)'>✕</button><h4>Peak threads</h4><div class='kd-value'>378</div><div class='kd-sub'>avg 376 active</div><div class='kd-body'>Max live JVM threads.</div><div class='kd-ideal'>✅ Ideal: Stable. 200-600 normal for Jira.</div><div class='kd-warn'>⚠️ Warning: Growing = thread leak. >1000 = executor misconfiguration.</div></div>
+<div class='kpi-detail' id='kpi-12'><button class='close-btn' onclick='hideKpi(event)'>✕</button><h4>Exceptions</h4><div class='kd-value'>82,462</div><div class='kd-sub'>during recording window</div><div class='kd-body'>ExceptionStatistics delta. Excludes pre-JFR exceptions.</div><div class='kd-ideal'>✅ Ideal: Low — exceptions should be rare.</div><div class='kd-warn'>⚠️ Warning: High count = CPU waste.</div></div>
+<script>
+function showKpi(id) {
+  var el = document.getElementById(id); if (!el) return;
+  el.style.top='50%'; el.style.left='50%'; el.style.transform='translate(-50%,-50%)';
+  document.getElementById('kpi-overlay').style.display='block';
+  el.classList.add('visible');
+}
+function hideKpi(e) {
+  document.querySelectorAll('.kpi-detail.visible').forEach(function(el){ el.classList.remove('visible'); });
+  document.getElementById('kpi-overlay').style.display='none';
+}
+</script>
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  (function(){
+    var el=document.getElementById('chart-cpu'); if(!el) return;
+    new Chart(el,{type:'line',data:{datasets:[{"label": "JVM CPU %", "data": [{"x": 0.0, "y": 7.426}, {"x": 1.4, "y": 7.308}, {"x": 2.4, "y": 0.99}, {"x": 3.4, "y": 2.75}, {"x": 4.4, "y": 0.748}, {"x": 5.4, "y": 1.707}, {"x": 6.4, "y": 1.489}, {"x": 7.4, "y": 0.744}, {"x": 8.4, "y": 2.97}, {"x": 9.4, "y": 0.752}, {"x": 10.8, "y": 6.835}, {"x": 11.8, "y": 0.971}, {"x": 12.8, "y": 2.2}, {"x": 13.8, "y": 3.676}, {"x": 14.8, "y": 0.746}, {"x": 15.8, "y": 0.976}, {"x": 16.8, "y": 0.748}, {"x": 17.8, "y": 25.124}, {"x": 18.8, "y": 58.942}, {"x": 19.8, "y": 33.251}, {"x": 21.2, "y": 33.333}, {"x": 22.2, "y": 24.378}, {"x": 23.2, "y": 15.25}, {"x": 24.2, "y": 29.032}, {"x": 25.2, "y": 18.519}, {"x": 26.2, "y": 16.958}, {"x": 27.2, "y": 12.562}, {"x": 28.2, "y": 15.113}, {"x": 29.2, "y": 11.414}, {"x": 30.5, "y": 15.356}, {"x": 31.5, "y": 5.0}, {"x": 32.5, "y": 0.995}, {"x": 33.5, "y": 8.25}, {"x": 34.5, "y": 32.0}, {"x": 35.6, "y": 20.247}, {"x": 36.6, "y": 17.259}, {"x": 37.6, "y": 20.149}, {"x": 38.6, "y": 24.0}, {"x": 39.8, "y": 35.232}, {"x": 41.1, "y": 42.804}, {"x": 42.1, "y": 19.549}, {"x": 43.1, "y": 19.656}, {"x": 44.1, "y": 20.988}, {"x": 45.1, "y": 19.277}, {"x": 46.1, "y": 20.101}, {"x": 47.1, "y": 20.759}, {"x": 48.1, "y": 22.222}, {"x": 49.1, "y": 24.873}, {"x": 50.5, "y": 27.41}, {"x": 51.5, "y": 20.707}, {"x": 52.5, "y": 19.799}, {"x": 53.5, "y": 22.556}, {"x": 54.5, "y": 21.197}, {"x": 55.5, "y": 19.212}, {"x": 56.5, "y": 20.297}, {"x": 57.5, "y": 19.652}, {"x": 58.5, "y": 19.851}, {"x": 59.5, "y": 16.962}, {"x": 60.8, "y": 22.328}, {"x": 61.8, "y": 18.274}, {"x": 62.8, "y": 16.04}, {"x": 63.8, "y": 19.347}, {"x": 64.8, "y": 6.5}, {"x": 65.8, "y": 1.229}, {"x": 66.8, "y": 9.645}, {"x": 67.8, "y": 22.807}, {"x": 68.8, "y": 33.75}, {"x": 69.8, "y": 48.12}, {"x": 71.2, "y": 33.146}, {"x": 72.2, "y": 55.89}, {"x": 73.2, "y": 39.801}, {"x": 74.2, "y": 25.062}, {"x": 75.2, "y": 28.606}, {"x": 76.2, "y": 25.935}, {"x": 77.2, "y": 5.263}, {"x": 78.2, "y": 2.743}, {"x": 79.2, "y": 1.5}, {"x": 80.5, "y": 6.31}, {"x": 81.5, "y": 0.748}, {"x": 82.5, "y": 1.995}, {"x": 83.5, "y": 2.494}, {"x": 84.5, "y": 1.253}, {"x": 85.5, "y": 0.983}, {"x": 86.5, "y": 0.501}, {"x": 87.6, "y": 0.99}, {"x": 88.6, "y": 2.985}], "borderColor": "#4f8ef7", "backgroundColor": "transparent", "borderWidth": 1.5, "pointRadius": 0, "tension": 0.3}, {"label": "Machine %", "data": [{"x": 0.0, "y": 43.564}, {"x": 1.4, "y": 35.294}, {"x": 2.4, "y": 25.743}, {"x": 3.4, "y": 28.0}, {"x": 4.4, "y": 24.19}, {"x": 5.4, "y": 26.098}, {"x": 6.4, "y": 25.31}, {"x": 7.4, "y": 24.318}, {"x": 8.4, "y": 27.475}, {"x": 9.4, "y": 23.81}, {"x": 10.8, "y": 30.755}, {"x": 11.8, "y": 23.301}, {"x": 12.8, "y": 24.694}, {"x": 13.8, "y": 26.716}, {"x": 14.8, "y": 23.134}, {"x": 15.8, "y": 25.366}, {"x": 16.8, "y": 24.938}, {"x": 17.8, "y": 51.741}, {"x": 18.8, "y": 84.635}, {"x": 19.8, "y": 59.305}, {"x": 21.2, "y": 58.473}, {"x": 22.2, "y": 48.259}, {"x": 23.2, "y": 39.5}, {"x": 24.2, "y": 53.35}, {"x": 25.2, "y": 44.198}, {"x": 26.2, "y": 43.142}, {"x": 27.2, "y": 41.133}, {"x": 28.2, "y": 39.798}, {"x": 29.2, "y": 38.213}, {"x": 30.5, "y": 40.824}, {"x": 31.5, "y": 28.5}, {"x": 32.5, "y": 25.124}, {"x": 33.5, "y": 32.75}, {"x": 34.5, "y": 58.25}, {"x": 35.6, "y": 45.926}, {"x": 36.6, "y": 42.132}, {"x": 37.6, "y": 45.025}, {"x": 38.6, "y": 50.5}, {"x": 39.8, "y": 59.283}, {"x": 41.1, "y": 67.477}, {"x": 42.1, "y": 43.609}, {"x": 43.1, "y": 43.98}, {"x": 44.1, "y": 46.173}, {"x": 45.1, "y": 45.542}, {"x": 46.1, "y": 46.231}, {"x": 47.1, "y": 46.329}, {"x": 48.1, "y": 48.99}, {"x": 49.1, "y": 50.254}, {"x": 50.5, "y": 52.93}, {"x": 51.5, "y": 46.212}, {"x": 52.5, "y": 45.363}, {"x": 53.5, "y": 48.25}, {"x": 54.5, "y": 46.633}, {"x": 55.5, "y": 47.16}, {"x": 56.5, "y": 47.525}, {"x": 57.5, "y": 45.025}, {"x": 58.5, "y": 47.146}, {"x": 59.5, "y": 43.687}, {"x": 60.8, "y": 53.346}, {"x": 61.8, "y": 43.655}, {"x": 62.8, "y": 40.852}, {"x": 63.8, "y": 46.231}, {"x": 64.8, "y": 32.25}, {"x": 65.8, "y": 25.799}, {"x": 66.8, "y": 34.772}, {"x": 67.8, "y": 48.371}, {"x": 68.8, "y": 58.75}, {"x": 69.8, "y": 72.18}, {"x": 71.2, "y": 58.989}, {"x": 72.2, "y": 81.203}, {"x": 73.2, "y": 64.925}, {"x": 74.2, "y": 50.372}, {"x": 75.2, "y": 53.056}, {"x": 76.2, "y": 50.873}, {"x": 77.2, "y": 29.323}, {"x": 78.2, "y": 27.431}, {"x": 79.2, "y": 26.434}, {"x": 80.5, "y": 30.843}, {"x": 81.5, "y": 25.187}, {"x": 82.5, "y": 26.683}, {"x": 83.5, "y": 28.18}, {"x": 84.5, "y": 26.065}, {"x": 85.5, "y": 25.799}, {"x": 86.5, "y": 25.313}, {"x": 87.6, "y": 25.495}, {"x": 88.6, "y": 27.363}], "borderColor": "#aecbfa", "backgroundColor": "transparent", "borderWidth": 1.5, "pointRadius": 0, "tension": 0.3}]},options:{
+      responsive:true,animation:false,
+      plugins:{legend:{display:true,labels:{color:'#e4e6f0',font:{size:11}}}},
+      scales:{
+        x:{type:'linear',title:{display:true,text:'seconds',color:'#6b7280'},ticks:{color:'#6b7280'},grid:{color:'#2d3147'}},
+        y:{title:{display:true,text:'%',color:'#6b7280'},ticks:{color:'#6b7280'},grid:{color:'#2d3147'}}
+      }
+    }});
+  })();
+  (function(){
+    var el=document.getElementById('chart-heap'); if(!el) return;
+    new Chart(el,{type:'line',data:{datasets:[{"label": "Heap used (GB)", "data": [{"x": 0.0, "y": 3.212}, {"x": 0.1, "y": 1.474}, {"x": 0.1, "y": 1.474}, {"x": 5.3, "y": 1.646}, {"x": 22.1, "y": 3.544}, {"x": 22.4, "y": 1.714}, {"x": 22.4, "y": 1.716}, {"x": 22.7, "y": 1.69}, {"x": 30.8, "y": 3.401}, {"x": 30.8, "y": 1.698}, {"x": 38.7, "y": 3.432}, {"x": 38.7, "y": 1.7}, {"x": 54.1, "y": 3.459}, {"x": 54.2, "y": 1.704}, {"x": 54.2, "y": 1.704}, {"x": 59.0, "y": 1.861}], "borderColor": "#f4a261", "backgroundColor": "#f4a26133", "borderWidth": 1.5, "pointRadius": 0, "tension": 0.3, "fill": true}]},options:{
+      responsive:true,animation:false,
+      plugins:{legend:{display:true,labels:{color:'#e4e6f0',font:{size:11}}}},
+      scales:{
+        x:{type:'linear',title:{display:true,text:'seconds',color:'#6b7280'},ticks:{color:'#6b7280'},grid:{color:'#2d3147'}},
+        y:{title:{display:true,text:'GB',color:'#6b7280'},ticks:{color:'#6b7280'},grid:{color:'#2d3147'}}
+      }
+    }});
+  })();
+  (function(){
+    var el=document.getElementById('chart-thr'); if(!el) return;
+    new Chart(el,{type:'line',data:{datasets:[{"label": "Active threads", "data": [{"x": 0.0, "y": 371.0}, {"x": 1.4, "y": 371.0}, {"x": 2.4, "y": 371.0}, {"x": 3.4, "y": 371.0}, {"x": 4.4, "y": 371.0}, {"x": 5.4, "y": 371.0}, {"x": 6.4, "y": 371.0}, {"x": 7.4, "y": 371.0}, {"x": 8.4, "y": 371.0}, {"x": 9.4, "y": 371.0}, {"x": 10.8, "y": 371.0}, {"x": 11.8, "y": 371.0}, {"x": 12.8, "y": 371.0}, {"x": 13.8, "y": 371.0}, {"x": 14.8, "y": 371.0}, {"x": 15.8, "y": 371.0}, {"x": 16.8, "y": 371.0}, {"x": 17.8, "y": 377.0}, {"x": 18.8, "y": 377.0}, {"x": 19.8, "y": 378.0}, {"x": 21.2, "y": 378.0}, {"x": 22.2, "y": 378.0}, {"x": 23.2, "y": 378.0}, {"x": 24.2, "y": 378.0}, {"x": 25.2, "y": 378.0}, {"x": 26.2, "y": 378.0}, {"x": 27.2, "y": 378.0}, {"x": 28.2, "y": 378.0}, {"x": 29.2, "y": 378.0}, {"x": 30.5, "y": 378.0}, {"x": 31.5, "y": 378.0}, {"x": 32.5, "y": 378.0}, {"x": 33.5, "y": 378.0}, {"x": 34.5, "y": 378.0}, {"x": 35.6, "y": 378.0}, {"x": 36.6, "y": 378.0}, {"x": 37.6, "y": 378.0}, {"x": 38.6, "y": 378.0}, {"x": 39.8, "y": 378.0}, {"x": 41.1, "y": 378.0}, {"x": 42.1, "y": 378.0}, {"x": 43.1, "y": 378.0}, {"x": 44.1, "y": 378.0}, {"x": 45.1, "y": 378.0}, {"x": 46.1, "y": 378.0}, {"x": 47.1, "y": 378.0}, {"x": 48.1, "y": 378.0}, {"x": 49.1, "y": 378.0}, {"x": 50.5, "y": 378.0}, {"x": 51.5, "y": 378.0}, {"x": 52.5, "y": 378.0}, {"x": 53.5, "y": 378.0}, {"x": 54.5, "y": 378.0}, {"x": 55.5, "y": 378.0}, {"x": 56.5, "y": 378.0}, {"x": 57.5, "y": 378.0}, {"x": 58.5, "y": 378.0}, {"x": 59.5, "y": 378.0}, {"x": 60.8, "y": 378.0}, {"x": 61.8, "y": 378.0}, {"x": 62.8, "y": 378.0}, {"x": 63.8, "y": 378.0}, {"x": 64.8, "y": 378.0}, {"x": 65.8, "y": 378.0}, {"x": 66.8, "y": 378.0}, {"x": 67.8, "y": 378.0}, {"x": 68.8, "y": 378.0}, {"x": 69.8, "y": 378.0}, {"x": 71.2, "y": 378.0}, {"x": 72.2, "y": 376.0}, {"x": 73.2, "y": 376.0}, {"x": 74.2, "y": 376.0}, {"x": 75.2, "y": 376.0}, {"x": 76.2, "y": 376.0}, {"x": 77.2, "y": 376.0}, {"x": 78.2, "y": 375.0}, {"x": 79.2, "y": 375.0}, {"x": 80.5, "y": 374.0}, {"x": 81.5, "y": 374.0}, {"x": 82.5, "y": 374.0}, {"x": 83.5, "y": 374.0}, {"x": 84.5, "y": 373.0}, {"x": 85.5, "y": 373.0}, {"x": 86.5, "y": 373.0}, {"x": 87.6, "y": 373.0}, {"x": 88.6, "y": 373.0}], "borderColor": "#6bcb77", "backgroundColor": "transparent", "borderWidth": 1.5, "pointRadius": 0, "tension": 0.3}]},options:{
+      responsive:true,animation:false,
+      plugins:{legend:{display:true,labels:{color:'#e4e6f0',font:{size:11}}}},
+      scales:{
+        x:{type:'linear',title:{display:true,text:'seconds',color:'#6b7280'},ticks:{color:'#6b7280'},grid:{color:'#2d3147'}},
+        y:{title:{display:true,text:'threads',color:'#6b7280'},ticks:{color:'#6b7280'},grid:{color:'#2d3147'}}
+      }
+    }});
+  })();
+  (function(){
+    var el=document.getElementById('chart-net'); if(!el) return;
+    new Chart(el,{type:'line',data:{datasets:[{"label": "Net read (MB/s)", "data": [{"x": 0.0, "y": 0.293}, {"x": 5.0, "y": 0.303}, {"x": 10.0, "y": 0.299}, {"x": 15.0, "y": 21.158}, {"x": 20.0, "y": 34.281}, {"x": 25.0, "y": 36.709}, {"x": 30.0, "y": 7.196}, {"x": 35.0, "y": 49.352}, {"x": 40.0, "y": 60.233}, {"x": 45.0, "y": 95.253}, {"x": 50.0, "y": 100.225}, {"x": 55.0, "y": 68.614}, {"x": 60.1, "y": 5.954}, {"x": 65.1, "y": 2.203}, {"x": 70.1, "y": 0.499}, {"x": 75.1, "y": 0.298}, {"x": 80.1, "y": 0.304}, {"x": 85.1, "y": 0.279}], "borderColor": "#9b59b6", "backgroundColor": "transparent", "borderWidth": 1.5, "pointRadius": 0, "tension": 0.3}, {"label": "Net write (MB/s)", "data": [{"x": 0.0, "y": 0.209}, {"x": 5.0, "y": 0.218}, {"x": 10.0, "y": 0.215}, {"x": 15.0, "y": 0.783}, {"x": 20.0, "y": 0.595}, {"x": 25.0, "y": 2.827}, {"x": 30.0, "y": 1.557}, {"x": 35.0, "y": 1.279}, {"x": 40.0, "y": 0.959}, {"x": 45.0, "y": 1.244}, {"x": 50.0, "y": 1.14}, {"x": 55.0, "y": 1.557}, {"x": 60.1, "y": 2.105}, {"x": 65.1, "y": 0.839}, {"x": 70.1, "y": 0.696}, {"x": 75.1, "y": 0.215}, {"x": 80.1, "y": 0.222}, {"x": 85.1, "y": 0.182}], "borderColor": "#d35400", "backgroundColor": "transparent", "borderWidth": 1.5, "pointRadius": 0, "tension": 0.3}]},options:{
+      responsive:true,animation:false,
+      plugins:{legend:{display:true,labels:{color:'#e4e6f0',font:{size:11}}}},
+      scales:{
+        x:{type:'linear',title:{display:true,text:'seconds',color:'#6b7280'},ticks:{color:'#6b7280'},grid:{color:'#2d3147'}},
+        y:{title:{display:true,text:'MB/s',color:'#6b7280'},ticks:{color:'#6b7280'},grid:{color:'#2d3147'}}
+      }
+    }});
+  })();
+  (function(){
+    var el=document.getElementById('chart-db-io'); if(!el) return;
+    new Chart(el,{type:'line',data:{datasets:[{"label": "DB calls/10s", "data": [{"x": 0, "y": 81}, {"x": 10, "y": 16}, {"x": 20, "y": 1}, {"x": 30, "y": 0}, {"x": 40, "y": 2}], "borderColor": "#4f8ef7", "backgroundColor": "transparent", "borderWidth": 1.5, "pointRadius": 0, "tension": 0.3, "yAxisID": "y"}, {"label": "DB avg latency (ms)", "data": [{"x": 0, "y": 140.4}, {"x": 10, "y": 186.4}, {"x": 20, "y": 167.4}, {"x": 30, "y": 0}, {"x": 40, "y": 1098.8}], "borderColor": "#f4a261", "backgroundColor": "transparent", "borderWidth": 1.5, "pointRadius": 0, "tension": 0.3, "yAxisID": "y2"}]},options:{
+      responsive:true,animation:false,
+      plugins:{legend:{display:true,labels:{color:'#e4e6f0',font:{size:11}}}},
+      scales:{
+        x:{type:'linear',title:{display:true,text:'seconds',color:'#6b7280'},ticks:{color:'#6b7280'},grid:{color:'#2d3147'}},
+        y:{type:'linear',position:'left',title:{display:true,text:'calls/10s',color:'#6b7280'},ticks:{color:'#6b7280'},grid:{color:'#2d3147'}},
+        y2:{type:'linear',position:'right',title:{display:true,text:'avg ms',color:'#6b7280'},ticks:{color:'#6b7280'},grid:{drawOnChartArea:false}}
+      }
+    }});
+  })();
+  (function(){
+    var el=document.getElementById('chart-api-io'); if(!el) return;
+    new Chart(el,{type:'line',data:{datasets:[{"label": "API calls/10s", "data": [], "borderColor": "#9b59b6", "backgroundColor": "transparent", "borderWidth": 1.5, "pointRadius": 0, "tension": 0.3, "yAxisID": "y"}, {"label": "API avg latency (ms)", "data": [], "borderColor": "#e74c3c", "backgroundColor": "transparent", "borderWidth": 1.5, "pointRadius": 0, "tension": 0.3, "yAxisID": "y2"}]},options:{
+      responsive:true,animation:false,
+      plugins:{legend:{display:true,labels:{color:'#e4e6f0',font:{size:11}}}},
+      scales:{
+        x:{type:'linear',title:{display:true,text:'seconds',color:'#6b7280'},ticks:{color:'#6b7280'},grid:{color:'#2d3147'}},
+        y:{type:'linear',position:'left',title:{display:true,text:'calls/10s',color:'#6b7280'},ticks:{color:'#6b7280'},grid:{color:'#2d3147'}},
+        y2:{type:'linear',position:'right',title:{display:true,text:'avg ms',color:'#6b7280'},ticks:{color:'#6b7280'},grid:{drawOnChartArea:false}}
+      }
+    }});
+  })();
+});
+</script>
+</body>
+</html>

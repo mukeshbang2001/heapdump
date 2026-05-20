@@ -1,0 +1,1954 @@
+{
+  "metrics": {
+    "run_label": "may18_proj_2.jfr-20260519-112417",
+    "jfr_file": "may18_proj_2.jfr",
+    "app_package": "com.atlassian.jira.migration",
+    "migration_package": "",
+    "xmx": "4096M",
+    "timestamp": "2026-05-19T11:24:17.196085Z",
+    "recording": {
+      "start": "2026-05-18 20:26:33 (UTC)",
+      "duration_s": 163
+    },
+    "cpu": {
+      "jvm_avg_pct": 43.09,
+      "jvm_peak_pct": 64.25,
+      "machine_avg_pct": 74.37
+    },
+    "memory": {
+      "heap_start_gb": 3.114,
+      "heap_peak_gb": 3.542,
+      "heap_end_gb": 1.695,
+      "heap_delta_gb": 0.427,
+      "gc_count": 23,
+      "gc_young_count": 19,
+      "gc_full_count": 4,
+      "gc_total_pause_ms": 25845.4,
+      "gc_max_pause_ms": 6710.4
+    },
+    "socket": {
+      "overall": {
+        "count": 98,
+        "total_ms": 4724.0,
+        "avg_ms": 48.2,
+        "p95_ms": 154.0,
+        "max_ms": 182.6,
+        "total_bytes": 490,
+        "slowest_10": []
+      },
+      "db": {
+        "count": 97,
+        "total_ms": 4700.0,
+        "avg_ms": 48.45,
+        "p95_ms": 154.0,
+        "max_ms": 182.6,
+        "total_bytes": 485,
+        "slowest_10": [
+          {
+            "dur_ms": 182.6,
+            "bytes": 5,
+            "thread": "http-nio-8080-exec-78"
+          },
+          {
+            "dur_ms": 182.4,
+            "bytes": 5,
+            "thread": "JCMA-ParallelIssueExporter-PID-44700-pool-12-thread-1"
+          },
+          {
+            "dur_ms": 181.9,
+            "bytes": 5,
+            "thread": "http-nio-8080-exec-78"
+          },
+          {
+            "dur_ms": 179.7,
+            "bytes": 5,
+            "thread": "JCMA-ParallelIssueExporter-PID-44700-pool-12-thread-2"
+          },
+          {
+            "dur_ms": 154.0,
+            "bytes": 5,
+            "thread": "http-nio-8080-exec-78"
+          },
+          {
+            "dur_ms": 128.7,
+            "bytes": 5,
+            "thread": "JCMA-ParallelIssueExporter-PID-44700-pool-12-thread-4"
+          },
+          {
+            "dur_ms": 127.2,
+            "bytes": 5,
+            "thread": "JCMA-ParallelIssueExporter-PID-44700-pool-12-thread-1"
+          },
+          {
+            "dur_ms": 113.0,
+            "bytes": 5,
+            "thread": "JCMA-ParallelIssueExporter-PID-44700-pool-12-thread-2"
+          },
+          {
+            "dur_ms": 86.0,
+            "bytes": 5,
+            "thread": "http-nio-8080-exec-31"
+          },
+          {
+            "dur_ms": 83.5,
+            "bytes": 5,
+            "thread": "JCMA-ParallelIssueExporter-PID-44700-pool-12-thread-3"
+          }
+        ]
+      },
+      "api": {
+        "count": 1,
+        "total_ms": 24.0,
+        "avg_ms": 24.01,
+        "p95_ms": 0,
+        "max_ms": 24.0,
+        "total_bytes": 5,
+        "slowest_10": [
+          {
+            "dur_ms": 24.0,
+            "bytes": 5,
+            "thread": "http-nio-8080-exec-31"
+          }
+        ]
+      },
+      "by_host": {
+        "api-private.atlassian.com:443": {
+          "count": 1,
+          "total_ms": 24.0,
+          "avg_ms": 24.01,
+          "p95_ms": 0,
+          "max_ms": 24.0,
+          "total_bytes": 5,
+          "slowest_10": [
+            {
+              "dur_ms": 24.0,
+              "bytes": 5,
+              "thread": "http-nio-8080-exec-31"
+            }
+          ]
+        },
+        "instenv-723366-r46w.cys9vcmootvs.ap-southeast-2.rds.amazonaws.com:5432": {
+          "count": 97,
+          "total_ms": 4700.0,
+          "avg_ms": 48.45,
+          "p95_ms": 154.0,
+          "max_ms": 182.6,
+          "total_bytes": 485,
+          "slowest_10": [
+            {
+              "dur_ms": 182.6,
+              "bytes": 5,
+              "thread": "http-nio-8080-exec-78"
+            },
+            {
+              "dur_ms": 182.4,
+              "bytes": 5,
+              "thread": "JCMA-ParallelIssueExporter-PID-44700-pool-12-thread-1"
+            },
+            {
+              "dur_ms": 181.9,
+              "bytes": 5,
+              "thread": "http-nio-8080-exec-78"
+            },
+            {
+              "dur_ms": 179.7,
+              "bytes": 5,
+              "thread": "JCMA-ParallelIssueExporter-PID-44700-pool-12-thread-2"
+            },
+            {
+              "dur_ms": 154.0,
+              "bytes": 5,
+              "thread": "http-nio-8080-exec-78"
+            },
+            {
+              "dur_ms": 128.7,
+              "bytes": 5,
+              "thread": "JCMA-ParallelIssueExporter-PID-44700-pool-12-thread-4"
+            },
+            {
+              "dur_ms": 127.2,
+              "bytes": 5,
+              "thread": "JCMA-ParallelIssueExporter-PID-44700-pool-12-thread-1"
+            },
+            {
+              "dur_ms": 113.0,
+              "bytes": 5,
+              "thread": "JCMA-ParallelIssueExporter-PID-44700-pool-12-thread-2"
+            },
+            {
+              "dur_ms": 86.0,
+              "bytes": 5,
+              "thread": "http-nio-8080-exec-31"
+            },
+            {
+              "dur_ms": 83.5,
+              "bytes": 5,
+              "thread": "JCMA-ParallelIssueExporter-PID-44700-pool-12-thread-3"
+            }
+          ]
+        }
+      },
+      "db_by_pool": [
+        {
+          "pool": "JCMA-ParallelIssueExporter-PID-44700-pool-12-thread",
+          "count": 80,
+          "total_ms": 3573.0,
+          "avg_ms": 44.7
+        },
+        {
+          "pool": "http-nio-8080-exec",
+          "count": 11,
+          "total_ms": 945.7,
+          "avg_ms": 86.0
+        },
+        {
+          "pool": "PlatformInstrumentsLoggingService",
+          "count": 2,
+          "total_ms": 90.9,
+          "avg_ms": 45.5
+        },
+        {
+          "pool": "pool-27-thread",
+          "count": 3,
+          "total_ms": 70.3,
+          "avg_ms": 23.4
+        },
+        {
+          "pool": "JCMA-MigrationTracker-pool-2-thread",
+          "count": 1,
+          "total_ms": 20.1,
+          "avg_ms": 20.1
+        }
+      ],
+      "_db_series": {
+        "time": [
+          0,
+          10,
+          20,
+          30,
+          40,
+          50,
+          60,
+          70,
+          80,
+          90,
+          100,
+          110,
+          120,
+          130,
+          140,
+          150
+        ],
+        "count": [
+          9,
+          5,
+          5,
+          9,
+          10,
+          2,
+          2,
+          3,
+          8,
+          12,
+          7,
+          3,
+          10,
+          7,
+          4,
+          1
+        ],
+        "avg_ms": [
+          35.5,
+          82.8,
+          35.9,
+          78.5,
+          38.9,
+          30.3,
+          37.2,
+          41.9,
+          36.8,
+          42.3,
+          32.1,
+          82.9,
+          45.9,
+          45.6,
+          56.3,
+          154.0
+        ]
+      },
+      "_api_series": {
+        "time": [
+          0
+        ],
+        "count": [
+          1
+        ],
+        "avg_ms": [
+          24.0
+        ]
+      }
+    },
+    "socket_writes": {
+      "count": 4
+    },
+    "network": {
+      "avg_read_bps": 28453526.2,
+      "peak_read_bps": 82076904.0,
+      "avg_write_bps": 11309087.2,
+      "peak_write_bps": 101956464.0
+    },
+    "blocking": {
+      "thread_park": {
+        "count": 11181,
+        "total_ms": 36333013.2,
+        "avg_ms": 3249.53,
+        "max_ms": 3599998.0,
+        "categories": [
+          {
+            "category": "idle_pool",
+            "label": "Idle thread-pool",
+            "count": 9257,
+            "total_ms": 35994909.6,
+            "pct": 99.1,
+            "avg_ms": 3888.4
+          },
+          {
+            "category": "other",
+            "label": "Other",
+            "count": 38,
+            "total_ms": 282243.4,
+            "pct": 0.8,
+            "avg_ms": 7427.5
+          },
+          {
+            "category": "semaphore",
+            "label": "Semaphore / rate-limiter",
+            "count": 1886,
+            "total_ms": 55860.2,
+            "pct": 0.2,
+            "avg_ms": 29.6
+          }
+        ],
+        "top_blocked_classes": [
+          {
+            "class": "java/util/concurrent/locks/AbstractQueuedSynchronizer$ConditionObject",
+            "count": 9187
+          },
+          {
+            "class": "java/util/concurrent/Semaphore$NonfairSync",
+            "count": 1886
+          },
+          {
+            "class": "None",
+            "count": 34
+          },
+          {
+            "class": "kotlinx/coroutines/DefaultExecutor",
+            "count": 32
+          },
+          {
+            "class": "java/util/concurrent/SynchronousQueue$TransferStack",
+            "count": 29
+          },
+          {
+            "class": "java/util/concurrent/ForkJoinPool",
+            "count": 5
+          },
+          {
+            "class": "java/util/concurrent/locks/ReentrantReadWriteLock$NonfairSync",
+            "count": 4
+          },
+          {
+            "class": "java/util/concurrent/FutureTask",
+            "count": 4
+          }
+        ]
+      },
+      "monitor_wait": {
+        "count": 168,
+        "total_ms": 1165236.6,
+        "avg_ms": 6935.93,
+        "max_ms": 60002.6
+      },
+      "thread_sleep": {
+        "count": 1180,
+        "total_ms": 7283823.1
+      }
+    },
+    "threads": {
+      "peak_active": 380,
+      "avg_active": 378.0
+    },
+    "hotspots": {
+      "total_samples": 4891,
+      "top_methods": [
+        {
+          "method": "com.atlassian.jira.issue.customfields.option.LazyLoadedOption.getValue",
+          "samples": 592
+        },
+        {
+          "method": "java.util.HashMap.getNode",
+          "samples": 393
+        },
+        {
+          "method": "java.lang.ThreadLocal$ThreadLocalMap.getEntryAfterMiss",
+          "samples": 153
+        },
+        {
+          "method": "java.util.HashMap.putVal",
+          "samples": 148
+        },
+        {
+          "method": "java.util.concurrent.ConcurrentHashMap.get",
+          "samples": 121
+        },
+        {
+          "method": "java.util.Arrays.copyOf",
+          "samples": 115
+        },
+        {
+          "method": "net.sf.ehcache.constructs.EhcacheDecoratorAdapter.get",
+          "samples": 115
+        },
+        {
+          "method": "kotlin.sequences.FilteringSequence$iterator$1.<init>",
+          "samples": 107
+        },
+        {
+          "method": "com.google.common.collect.ImmutableSet$RegularSetBuilderImpl.insertInHashTable",
+          "samples": 105
+        },
+        {
+          "method": "java.lang.Long.toString",
+          "samples": 100
+        },
+        {
+          "method": "org.springframework.aop.framework.ReflectiveMethodInvocation.proceed",
+          "samples": 84
+        },
+        {
+          "method": "net.sf.ehcache.store.chm.SelectableConcurrentHashMap$Segment.get",
+          "samples": 77
+        },
+        {
+          "method": "java.util.HashMap$TreeNode.getTreeNode",
+          "samples": 75
+        },
+        {
+          "method": "com.atlassian.jira.migration.export.service.ExportService.findExporter",
+          "samples": 69
+        },
+        {
+          "method": "java.util.EnumMap.isValidKey",
+          "samples": 62
+        },
+        {
+          "method": "com.google.common.collect.ImmutableSet$RegularSetBuilderImpl.rebuildHashTable",
+          "samples": 49
+        },
+        {
+          "method": "java.lang.reflect.Method.invoke",
+          "samples": 48
+        },
+        {
+          "method": "org.ofbiz.core.entity.GenericEntity.getString",
+          "samples": 48
+        },
+        {
+          "method": "java.util.HashMap.resize",
+          "samples": 45
+        },
+        {
+          "method": "com.atlassian.jira.migration.export.core.issue.CloudChangeItemConverter.isUnknownOptionValue",
+          "samples": 45
+        }
+      ],
+      "top_app_methods": [
+        {
+          "method": "com.atlassian.jira.migration.export.service.ExportService.findExporter",
+          "samples": 69
+        },
+        {
+          "method": "com.atlassian.jira.migration.export.core.issue.CloudChangeItemConverter.isUnknownOptionValue",
+          "samples": 45
+        },
+        {
+          "method": "com.atlassian.jira.migration.export.service.ExportService.findExporterOrThrow",
+          "samples": 6
+        },
+        {
+          "method": "com.atlassian.jira.migration.version.VersionService.findPluginVersion",
+          "samples": 2
+        },
+        {
+          "method": "com.atlassian.jira.migration.export.core.issue.IssueExporter.exportData",
+          "samples": 2
+        },
+        {
+          "method": "com.atlassian.jira.migration.export.service.ExportService.continueWithChildrenActions",
+          "samples": 2
+        },
+        {
+          "method": "com.atlassian.jira.migration.common.EnvironmentConfigs.get",
+          "samples": 2
+        },
+        {
+          "method": "com.atlassian.jira.migration.export.core.customfield.CustomFieldValueParser.parseValue",
+          "samples": 2
+        },
+        {
+          "method": "com.atlassian.jira.migration.export.software.board.RapidViewExporter.collectBoardDataAndValidate",
+          "samples": 1
+        },
+        {
+          "method": "com.atlassian.jira.migration.log.EntityIdentifierGenerator.generate",
+          "samples": 1
+        },
+        {
+          "method": "com.atlassian.jira.migration.export.core.issue.CloudChangeItemConverterKt.toList",
+          "samples": 1
+        },
+        {
+          "method": "com.atlassian.jira.migration.export.core.issue.IssueExporter.exportChangeHistory",
+          "samples": 1
+        },
+        {
+          "method": "com.atlassian.jira.migration.export.service.UsersExportService.collectUserRefs",
+          "samples": 1
+        },
+        {
+          "method": "com.atlassian.jira.migration.export.core.issue.IssueExporter.childrenActions$lambda$26",
+          "samples": 1
+        },
+        {
+          "method": "com.atlassian.jira.migration.export.core.issue.CustomFieldToChangeItemMatchingTechniquesProvider.getFieldByOptionList",
+          "samples": 1
+        },
+        {
+          "method": "com.atlassian.jira.migration.export.core.issue.CloudChangeItemConverter.customFieldToCloudChangeItem",
+          "samples": 1
+        },
+        {
+          "method": "com.atlassian.jira.migration.export.core.issue.V2IssueCustomFieldValueExportMapper.mapCustomFieldValuesWithPrefetchedData$lambda$1",
+          "samples": 1
+        },
+        {
+          "method": "com.atlassian.jira.migration.export.service.ExportService.isPostGlobalEntity",
+          "samples": 1
+        },
+        {
+          "method": "com.atlassian.jira.migration.export.core.issue.CustomFieldToChangeItemMatchingTechniquesProvider.matchOnSingleOption",
+          "samples": 1
+        },
+        {
+          "method": "com.atlassian.jira.migration.export.core.issue.ChangeGroupExporter.exportData",
+          "samples": 1
+        }
+      ],
+      "top_packages": [
+        {
+          "package": "com.atlassian.jira.migration.export.service",
+          "samples": 85
+        },
+        {
+          "package": "com.atlassian.jira.migration.export.core",
+          "samples": 63
+        },
+        {
+          "package": "com.atlassian.jira.migration.version.VersionService",
+          "samples": 2
+        },
+        {
+          "package": "com.atlassian.jira.migration.common.EnvironmentConfigs",
+          "samples": 2
+        },
+        {
+          "package": "com.atlassian.jira.migration.export.software",
+          "samples": 1
+        },
+        {
+          "package": "com.atlassian.jira.migration.log.EntityIdentifierGenerator",
+          "samples": 1
+        },
+        {
+          "package": "com.atlassian.jira.migration.export.ExportFacade",
+          "samples": 1
+        },
+        {
+          "package": "com.atlassian.jira.migration.export.framework",
+          "samples": 1
+        },
+        {
+          "package": "com.atlassian.jira.migration.utility.DatabaseRetryHandler",
+          "samples": 1
+        }
+      ]
+    },
+    "allocations": {
+      "total_samples": 37784,
+      "top_by_weight": [
+        {
+          "class": "[Ljava.lang.Object;",
+          "weight_mb": 5141.5,
+          "samples": 5224
+        },
+        {
+          "class": "[B",
+          "weight_mb": 4020.1,
+          "samples": 4546
+        },
+        {
+          "class": "java.util.HashMap$ValueSpliterator",
+          "weight_mb": 3737.2,
+          "samples": 41
+        },
+        {
+          "class": "java.util.HashMap$Node",
+          "weight_mb": 3186.5,
+          "samples": 3188
+        },
+        {
+          "class": "java.util.HashSet",
+          "weight_mb": 3015.7,
+          "samples": 148
+        },
+        {
+          "class": "net.sf.ehcache.Element",
+          "weight_mb": 2191.8,
+          "samples": 1946
+        },
+        {
+          "class": "[Ljava.util.HashMap$Node;",
+          "weight_mb": 1761.6,
+          "samples": 1636
+        },
+        {
+          "class": "org.springframework.aop.framework.ReflectiveMethodInvocation",
+          "weight_mb": 937.5,
+          "samples": 995
+        },
+        {
+          "class": "java.util.LinkedHashMap$Entry",
+          "weight_mb": 683.0,
+          "samples": 569
+        },
+        {
+          "class": "org.springframework.aop.framework.AdvisedSupport$MethodCacheKey",
+          "weight_mb": 606.3,
+          "samples": 759
+        },
+        {
+          "class": "java.lang.String",
+          "weight_mb": 598.2,
+          "samples": 818
+        },
+        {
+          "class": "[J",
+          "weight_mb": 563.8,
+          "samples": 388
+        },
+        {
+          "class": "java.util.ArrayList",
+          "weight_mb": 524.6,
+          "samples": 611
+        },
+        {
+          "class": "java.lang.ThreadLocal$ThreadLocalMap$Entry",
+          "weight_mb": 520.6,
+          "samples": 433
+        },
+        {
+          "class": "java.util.HashMap",
+          "weight_mb": 493.0,
+          "samples": 594
+        }
+      ],
+      "top_callers": [
+        {
+          "caller": "com.atlassian.jira.migration.export.service.ExportService.findExporter",
+          "weight_mb": 474.7,
+          "top_classes": "ConcurrentHashMap$MapEntry(433), ConcurrentHashMap$EntryIterator(23)"
+        },
+        {
+          "caller": "com.atlassian.jira.migration.export.utils.TextSanitizer.unescapeBracesInWikiLinks",
+          "weight_mb": 134.0,
+          "top_classes": "[I(45), Matcher(14)"
+        },
+        {
+          "caller": "com.atlassian.jira.migration.export.utils.CustomFieldUtils.getCloudAppTypeKeyMapping",
+          "weight_mb": 133.5,
+          "top_classes": "Object;(65), ArrayList(27)"
+        },
+        {
+          "caller": "com.atlassian.jira.migration.export.framework.MriExtensionsKt.mri",
+          "weight_mb": 117.0,
+          "top_classes": "MRI(61), String(42)"
+        },
+        {
+          "caller": "com.atlassian.jira.migration.export.utils.ExportFilters.getSupportedCustomFieldTypes",
+          "weight_mb": 109.9,
+          "top_classes": "Object;(57), LinkedHashMap(21)"
+        },
+        {
+          "caller": "com.atlassian.jira.migration.export.core.issue.CloudChangeItemConverter.createGenericChangeItem",
+          "weight_mb": 86.9,
+          "top_classes": "[B(38), String(9)"
+        },
+        {
+          "caller": "com.atlassian.jira.migration.export.utils.AppVendorMinimalContext.<init>",
+          "weight_mb": 86.4,
+          "top_classes": "HashMap(33), ArrayList$Itr(14)"
+        },
+        {
+          "caller": "com.atlassian.jira.migration.export.model.JiraToolkitConstants.supportedFieldTypes",
+          "weight_mb": 71.9,
+          "top_classes": "LinkedHashMap(25), LinkedHashMap$LinkedKeyIterator(14)"
+        },
+        {
+          "caller": "com.atlassian.jira.migration.export.core.issue.ChangeGroupExporter.mapChangeHistoryItems",
+          "weight_mb": 70.3,
+          "top_classes": "CloudChangeItemConverter(13), Object;(12)"
+        },
+        {
+          "caller": "com.atlassian.jira.migration.tracking.polling.AbstractPoller.execute",
+          "weight_mb": 58.3,
+          "top_classes": "AdvisedSupport$MethodCacheKey(244), ReflectiveMethodInvocation(1)"
+        },
+        {
+          "caller": "com.atlassian.jira.migration.export.model.JiraToolkitConstants.messageFieldTypes",
+          "weight_mb": 57.5,
+          "top_classes": "LinkedHashMap(14), String;(9)"
+        },
+        {
+          "caller": "com.atlassian.jira.migration.export.core.customfield.CustomFieldValueExportHelper.exportCustomFieldValueForIssue",
+          "weight_mb": 52.3,
+          "top_classes": "TokenBuffer$Parser(14), Object;(9)"
+        },
+        {
+          "caller": "com.atlassian.jira.migration.export.core.issue.CloudChangeItemConverter.standardFieldToCloudChangeItem",
+          "weight_mb": 51.3,
+          "top_classes": "String(13), [B(12)"
+        },
+        {
+          "caller": "com.atlassian.jira.migration.export.core.customfield.CustomFieldDBValueMapPerIssue.<init>",
+          "weight_mb": 49.1,
+          "top_classes": "Long(13), ArrayList(11)"
+        },
+        {
+          "caller": "com.atlassian.jira.migration.db.CompatibleProductSchemaProvider.getProductSchema",
+          "weight_mb": 40.2,
+          "top_classes": "Method(20), WeakReference(10)"
+        }
+      ],
+      "top_migration_callers": []
+    },
+    "large_allocs": {
+      "total_events": 5311,
+      "top_by_size": [
+        {
+          "class": "[B",
+          "total_bytes": 8397576
+        },
+        {
+          "class": "[Ljava.util.concurrent.ConcurrentHashMap$Node;",
+          "total_bytes": 3752864
+        },
+        {
+          "class": "[Ljava.lang.Object;",
+          "total_bytes": 3031184
+        },
+        {
+          "class": "[C",
+          "total_bytes": 2399944
+        },
+        {
+          "class": "[Ljava.util.HashMap$Node;",
+          "total_bytes": 726960
+        },
+        {
+          "class": "[D",
+          "total_bytes": 56496
+        },
+        {
+          "class": "[Lorg.apache.catalina.Container;",
+          "total_bytes": 35328
+        },
+        {
+          "class": "[J",
+          "total_bytes": 33856
+        },
+        {
+          "class": "net.sf.ehcache.Element",
+          "total_bytes": 31840
+        },
+        {
+          "class": "[S",
+          "total_bytes": 24624
+        },
+        {
+          "class": "[I",
+          "total_bytes": 5280
+        },
+        {
+          "class": "java.util.stream.ReferencePipeline$2",
+          "total_bytes": 3712
+        },
+        {
+          "class": "org.postgresql.jdbc.PgStatement",
+          "total_bytes": 3136
+        },
+        {
+          "class": "java.lang.reflect.Method",
+          "total_bytes": 1936
+        },
+        {
+          "class": "[Ljava.lang.StackTraceElement;",
+          "total_bytes": 1568
+        }
+      ]
+    },
+    "exceptions": {
+      "total_during_recording": 227383,
+      "top_types": [
+        {
+          "class": "ImmutableCustomField$TypeNotFoundException",
+          "count": 105583
+        },
+        {
+          "class": "ClassNotFoundException",
+          "count": 63571
+        },
+        {
+          "class": "GenericEntityNotFoundException",
+          "count": 29910
+        },
+        {
+          "class": "MismatchedInputException",
+          "count": 22414
+        },
+        {
+          "class": "JsonParseException",
+          "count": 1851
+        },
+        {
+          "class": "NullPointerException",
+          "count": 1612
+        },
+        {
+          "class": "DateTimeParseException",
+          "count": 1050
+        },
+        {
+          "class": "DateTimeException",
+          "count": 889
+        },
+        {
+          "class": "NoSuchMethodException",
+          "count": 156
+        },
+        {
+          "class": "NumberFormatException",
+          "count": 114
+        },
+        {
+          "class": "NotCompliantMBeanException",
+          "count": 34
+        },
+        {
+          "class": "IllegalStateException",
+          "count": 19
+        },
+        {
+          "class": "ArrayIndexOutOfBoundsException",
+          "count": 18
+        },
+        {
+          "class": "ShortBufferException",
+          "count": 18
+        },
+        {
+          "class": "ProviderException",
+          "count": 18
+        }
+      ]
+    },
+    "deoptimizations": {
+      "total": 1648,
+      "top_reasons": [
+        {
+          "reason": "null_check",
+          "count": 1597
+        },
+        {
+          "reason": "class_check",
+          "count": 23
+        },
+        {
+          "reason": "unstable_if",
+          "count": 20
+        },
+        {
+          "reason": "bimorphic_or_optimized_type_check",
+          "count": 7
+        },
+        {
+          "reason": "unloaded",
+          "count": 1
+        }
+      ]
+    }
+  },
+  "series": {
+    "cpu_time": [
+      1779135993.563858,
+      1779135994.570015,
+      1779135995.792038,
+      1779135996.792443,
+      1779135997.793862,
+      1779135998.81157,
+      1779135999.822009,
+      1779136000.82259,
+      1779136001.823161,
+      1779136002.82879,
+      1779136003.832402,
+      1779136004.836098,
+      1779136006.140068,
+      1779136007.13969,
+      1779136008.14366,
+      1779136009.146543,
+      1779136010.152113,
+      1779136011.156866,
+      1779136012.156655,
+      1779136013.15964,
+      1779136014.163854,
+      1779136015.512081,
+      1779136016.537368,
+      1779136017.538416,
+      1779136018.5411,
+      1779136019.544,
+      1779136020.54767,
+      1779136021.548758,
+      1779136022.554133,
+      1779136023.556974,
+      1779136024.56,
+      1779136025.910652,
+      1779136026.91061,
+      1779136027.91437,
+      1779136028.917437,
+      1779136029.920819,
+      1779136030.924349,
+      1779136031.92425,
+      1779136032.928301,
+      1779136033.93009,
+      1779136035.634247,
+      1779136036.633914,
+      1779136037.636981,
+      1779136038.639988,
+      1779136039.643287,
+      1779136040.648079,
+      1779136041.654185,
+      1779136042.659741,
+      1779136043.838042,
+      1779136044.856414,
+      1779136046.20712,
+      1779136047.220936,
+      1779136048.225213,
+      1779136049.236523,
+      1779136050.239822,
+      1779136051.24423,
+      1779136052.24386,
+      1779136053.246793,
+      1779136054.250081,
+      1779136055.629378,
+      1779136056.630919,
+      1779136057.630715,
+      1779136058.633337,
+      1779136059.636389,
+      1779136060.639286,
+      1779136061.639679,
+      1779136062.640326,
+      1779136063.643807,
+      1779136064.64733,
+      1779136066.00216,
+      1779136067.00153,
+      1779136068.005039,
+      1779136069.010129,
+      1779136070.013385,
+      1779136071.01639,
+      1779136072.016595,
+      1779136073.026114,
+      1779136074.028779,
+      1779136075.352773,
+      1779136076.354347,
+      1779136077.354915,
+      1779136078.357434,
+      1779136079.360855,
+      1779136080.365126,
+      1779136081.366108,
+      1779136082.365979,
+      1779136083.371154,
+      1779136084.374304,
+      1779136085.715091,
+      1779136086.714847,
+      1779136087.717855,
+      1779136088.721095,
+      1779136089.728992,
+      1779136090.734059,
+      1779136091.73356,
+      1779136092.736242,
+      1779136093.742117,
+      1779136094.745425,
+      1779136096.106378,
+      1779136097.106627,
+      1779136098.160219,
+      1779136099.186354,
+      1779136100.191518,
+      1779136101.197174,
+      1779136102.197155,
+      1779136103.201242,
+      1779136104.204998,
+      1779136105.545096,
+      1779136106.545821,
+      1779136107.546045,
+      1779136108.549001,
+      1779136109.551696,
+      1779136110.554908,
+      1779136111.55586,
+      1779136112.555594,
+      1779136113.558325,
+      1779136114.560988,
+      1779136115.934015,
+      1779136116.93351,
+      1779136117.936289,
+      1779136118.950124,
+      1779136119.953804,
+      1779136120.96211,
+      1779136121.961594,
+      1779136122.966306,
+      1779136123.970473,
+      1779136125.307548,
+      1779136126.32798,
+      1779136127.327734,
+      1779136128.330669,
+      1779136129.333923,
+      1779136130.337552,
+      1779136131.340542,
+      1779136132.341508,
+      1779136133.345139,
+      1779136134.348118,
+      1779136135.686055,
+      1779136136.69258,
+      1779136137.696878,
+      1779136138.70047,
+      1779136139.704253,
+      1779136140.710576,
+      1779136141.710744,
+      1779136142.712761,
+      1779136143.715533,
+      1779136144.718758,
+      1779136146.011314,
+      1779136147.012463,
+      1779136148.014868,
+      1779136149.017539,
+      1779136150.020003,
+      1779136151.023449,
+      1779136152.02403,
+      1779136153.026914,
+      1779136154.029536,
+      1779136155.354239
+    ],
+    "cpu_jvm": [
+      5.7934508000000005,
+      0.74257427,
+      6.790123,
+      1.0050251,
+      7.5566754,
+      22.772278,
+      31.738034,
+      17.171717,
+      15.829146,
+      12.25,
+      15.443037,
+      12.944162,
+      50.784313999999995,
+      45.833334,
+      26.262626,
+      23.325062,
+      60.401005,
+      57.828283,
+      47.582698,
+      45.822784,
+      47.073789999999995,
+      51.679105,
+      49.25,
+      47.103274,
+      47.328246,
+      50.773199999999996,
+      50.757575,
+      47.058824,
+      47.81491,
+      48.854962,
+      48.60051,
+      52.59117,
+      50.0,
+      48.46154,
+      49.100255999999995,
+      49.489796000000005,
+      50.127226,
+      59.343433000000005,
+      61.9403,
+      62.878789999999995,
+      64.25406299999999,
+      59.25,
+      62.5,
+      53.689569999999996,
+      51.12782,
+      47.959185,
+      47.715734999999995,
+      49.622166,
+      50.535333,
+      53.589743,
+      53.041830000000004,
+      49.238577,
+      49.118388,
+      53.589743,
+      50.252527,
+      46.700507,
+      46.547315,
+      48.051947,
+      50.520830000000004,
+      48.43462,
+      47.668394,
+      44.332492,
+      48.453607999999996,
+      48.214287,
+      46.5,
+      51.05263,
+      50.63613,
+      47.341772999999996,
+      47.727272,
+      53.831773999999996,
+      50.512820000000005,
+      58.31202,
+      60.80402,
+      62.656639999999996,
+      58.60349,
+      61.809045,
+      59.343433000000005,
+      58.690180000000005,
+      53.77176,
+      47.680414,
+      48.469388,
+      52.392950000000006,
+      50.12787600000001,
+      44.730076000000004,
+      45.360824,
+      48.711342,
+      48.071979999999996,
+      46.835443,
+      48.841699999999996,
+      48.697916,
+      48.866498,
+      49.363866,
+      45.68528,
+      50.0,
+      50.25773,
+      49.095607,
+      47.25,
+      46.410257,
+      49.440297,
+      48.223349999999996,
+      52.07824,
+      47.474748,
+      51.546389999999995,
+      47.30077,
+      50.0,
+      46.564886,
+      47.727272,
+      50.0,
+      46.310434,
+      53.333335999999996,
+      63.63636,
+      60.201514,
+      60.714287,
+      63.131315,
+      59.445846,
+      59.54198,
+      47.55784,
+      50.093805999999994,
+      43.92765,
+      48.607594,
+      49.624062,
+      45.771142999999995,
+      44.69697,
+      47.314578000000004,
+      44.642857,
+      46.753246,
+      50.863725,
+      44.191918,
+      44.416243,
+      46.803070000000005,
+      45.431470000000004,
+      40.5,
+      47.680414,
+      50.0,
+      47.55784,
+      47.355163,
+      48.766604,
+      46.231157,
+      33.915213,
+      25.75,
+      46.517414,
+      32.83582,
+      29.072680000000002,
+      25.5,
+      19.395466,
+      1.4962593,
+      7.915058,
+      1.2562814,
+      2.9850746,
+      1.5037593999999999,
+      0.7518796999999999,
+      0.49875312999999993,
+      1.2531328,
+      4.292929,
+      3.7406486,
+      6.6287875
+    ],
+    "cpu_machine": [
+      43.07305,
+      25.990099999999998,
+      31.069957999999996,
+      25.879398,
+      34.170854,
+      48.883376,
+      58.43829,
+      44.191918,
+      41.959798,
+      39.25,
+      42.27848,
+      40.35533,
+      82.74510000000001,
+      75.0,
+      57.575756,
+      51.612899999999996,
+      87.46867,
+      90.40404,
+      81.42493400000001,
+      80.0,
+      79.64377,
+      83.58209,
+      81.75,
+      81.10831400000001,
+      81.42493400000001,
+      83.505154,
+      83.838385,
+      79.795396,
+      80.205655,
+      80.15267,
+      80.661577,
+      83.87715999999999,
+      82.74112,
+      81.02564,
+      84.061694,
+      82.653064,
+      82.95165300000001,
+      91.161615,
+      94.527364,
+      94.44444,
+      95.568687,
+      90.5,
+      91.32652999999999,
+      88.04071,
+      84.46114999999999,
+      84.18367500000001,
+      88.071066,
+      80.604535,
+      82.86938,
+      83.58974500000001,
+      84.410644,
+      80.96447,
+      84.88665,
+      84.87179,
+      82.323235,
+      79.187816,
+      79.53964500000001,
+      79.48051699999999,
+      83.59375,
+      79.92633599999999,
+      80.051816,
+      80.35264600000001,
+      80.15464,
+      79.846936,
+      77.25,
+      78.94736999999999,
+      81.42493400000001,
+      79.49367000000001,
+      83.08081,
+      85.233647,
+      83.58974500000001,
+      88.23529500000001,
+      92.462313,
+      92.98246,
+      93.26683,
+      94.221103,
+      93.18182,
+      91.687655,
+      84.71954000000001,
+      80.927837,
+      82.39796,
+      84.13098500000001,
+      79.28389,
+      75.321335,
+      77.57731700000001,
+      78.09278400000001,
+      78.92031,
+      80.0,
+      82.239383,
+      79.6875,
+      80.904526,
+      82.39796,
+      79.69543300000001,
+      84.32836,
+      81.18557,
+      79.84496399999999,
+      84.5,
+      78.46154,
+      84.32836,
+      80.96447,
+      82.64059,
+      79.29293,
+      83.762884,
+      83.804625,
+      80.104715,
+      79.89822,
+      81.31313300000001,
+      83.26923000000001,
+      81.67939,
+      86.153847,
+      94.69697000000001,
+      94.20655,
+      92.091835,
+      92.92929,
+      89.67254,
+      91.09415,
+      80.71979,
+      83.864915,
+      76.48579,
+      79.746836,
+      83.20802,
+      78.855723,
+      77.52525,
+      81.32992399999999,
+      80.35714,
+      79.22078,
+      80.99807999999999,
+      76.01010000000001,
+      77.91878,
+      77.74936,
+      78.680205,
+      74.0,
+      80.41237,
+      79.84293,
+      79.43445,
+      79.34509,
+      82.54269400000001,
+      80.65326999999999,
+      65.83541000000001,
+      55.75,
+      75.124377,
+      59.20398,
+      54.63659,
+      50.0,
+      44.332492,
+      26.932669999999998,
+      34.169886,
+      27.13568,
+      28.606966,
+      27.06767,
+      26.31579,
+      26.433915000000002,
+      26.566415999999997,
+      29.040405000000003,
+      29.426435,
+      31.060606
+    ],
+    "heap_time": [
+      1779136010.956674,
+      1779136011.082809,
+      1779136016.197682,
+      1779136016.30622,
+      1779136023.640247,
+      1779136023.682486,
+      1779136031.209612,
+      1779136031.256564,
+      1779136031.256827,
+      1779136037.920941,
+      1779136040.743254,
+      1779136040.793017,
+      1779136041.591443,
+      1779136041.642144,
+      1779136049.460357,
+      1779136049.498366,
+      1779136057.986048,
+      1779136058.02716,
+      1779136067.416367,
+      1779136067.465092,
+      1779136067.465338,
+      1779136074.175778,
+      1779136077.499359,
+      1779136077.55567,
+      1779136078.369506,
+      1779136078.432696,
+      1779136087.558064,
+      1779136087.606642,
+      1779136097.253829,
+      1779136097.304968,
+      1779136107.148759,
+      1779136107.199929,
+      1779136107.200242,
+      1779136113.689775,
+      1779136118.497327,
+      1779136118.561373,
+      1779136119.33328,
+      1779136119.398154,
+      1779136128.440952,
+      1779136128.484149,
+      1779136136.766067,
+      1779136136.813891,
+      1779136138.411478,
+      1779136138.444355,
+      1779136138.444605,
+      1779136143.350416
+    ],
+    "heap_gb": [
+      3.1144862174987793,
+      1.527307391166687,
+      2.626916766166687,
+      1.5194587707519531,
+      3.251880645751953,
+      1.5243415832519531,
+      3.309497833251953,
+      1.5271807163953781,
+      1.5271807163953781,
+      2.683430716395378,
+      3.353352591395378,
+      1.5213197469711304,
+      1.6971009969711304,
+      1.4800419807434082,
+      3.401916980743408,
+      1.4863776043057442,
+      3.433643229305744,
+      1.489045798778534,
+      3.459748923778534,
+      1.4917607307434082,
+      1.4917607307434082,
+      2.737854480743408,
+      3.481995105743408,
+      1.494592122733593,
+      1.672326497733593,
+      1.4685149192810059,
+      3.497811794281006,
+      1.4758723303675652,
+      3.509075455367565,
+      1.4792571067810059,
+      3.522225856781006,
+      1.4831633567810059,
+      1.4831633567810059,
+      2.508553981781006,
+      3.530038356781006,
+      1.4860930442810059,
+      1.6579680442810059,
+      1.465944766998291,
+      3.534304141998291,
+      1.4732654467225075,
+      3.5416248217225075,
+      1.474733829498291,
+      1.695436954498291,
+      1.474733829498291,
+      1.474733829498291,
+      1.695436954498291
+    ],
+    "thread_time": [
+      1779135993.563862,
+      1779135994.570019,
+      1779135995.794564,
+      1779135996.792447,
+      1779135997.793866,
+      1779135998.811575,
+      1779135999.822014,
+      1779136000.822594,
+      1779136001.823167,
+      1779136002.828793,
+      1779136003.832405,
+      1779136004.836103,
+      1779136006.145209,
+      1779136007.139694,
+      1779136008.143664,
+      1779136009.146547,
+      1779136010.152117,
+      1779136011.15687,
+      1779136012.156659,
+      1779136013.159645,
+      1779136014.163859,
+      1779136015.512085,
+      1779136016.537372,
+      1779136017.538419,
+      1779136018.541104,
+      1779136019.544004,
+      1779136020.547673,
+      1779136021.548762,
+      1779136022.554136,
+      1779136023.556978,
+      1779136024.560004,
+      1779136025.910656,
+      1779136026.910613,
+      1779136027.914375,
+      1779136028.917441,
+      1779136029.920823,
+      1779136030.924353,
+      1779136031.924254,
+      1779136032.928305,
+      1779136033.930094,
+      1779136035.634251,
+      1779136036.633919,
+      1779136037.636986,
+      1779136038.639992,
+      1779136039.643291,
+      1779136040.648082,
+      1779136041.654189,
+      1779136042.659745,
+      1779136043.838046,
+      1779136044.856418,
+      1779136046.210555,
+      1779136047.22094,
+      1779136048.225216,
+      1779136049.236527,
+      1779136050.239826,
+      1779136051.244234,
+      1779136052.243864,
+      1779136053.246797,
+      1779136054.250084,
+      1779136055.629383,
+      1779136056.630923,
+      1779136057.63072,
+      1779136058.633341,
+      1779136059.636393,
+      1779136060.63929,
+      1779136061.639683,
+      1779136062.64033,
+      1779136063.643812,
+      1779136064.647335,
+      1779136066.002165,
+      1779136067.001534,
+      1779136068.005042,
+      1779136069.010133,
+      1779136070.01339,
+      1779136071.016394,
+      1779136072.016599,
+      1779136073.026119,
+      1779136074.028783,
+      1779136075.352777,
+      1779136076.35435,
+      1779136077.354918,
+      1779136078.357437,
+      1779136079.360859,
+      1779136080.36513,
+      1779136081.366112,
+      1779136082.365983,
+      1779136083.371158,
+      1779136084.374308,
+      1779136085.715096,
+      1779136086.714851,
+      1779136087.717859,
+      1779136088.7211,
+      1779136089.728996,
+      1779136090.734063,
+      1779136091.733578,
+      1779136092.736246,
+      1779136093.742121,
+      1779136094.745428,
+      1779136096.106382,
+      1779136097.106632,
+      1779136098.160224,
+      1779136099.186358,
+      1779136100.191522,
+      1779136101.197179,
+      1779136102.197159,
+      1779136103.201246,
+      1779136104.205003,
+      1779136105.5451,
+      1779136106.545826,
+      1779136107.546049,
+      1779136108.549004,
+      1779136109.5517,
+      1779136110.554912,
+      1779136111.555864,
+      1779136112.555598,
+      1779136113.558329,
+      1779136114.560993,
+      1779136115.934019,
+      1779136116.933514,
+      1779136117.936293,
+      1779136118.950129,
+      1779136119.953808,
+      1779136120.962114,
+      1779136121.961597,
+      1779136122.966309,
+      1779136123.970477,
+      1779136125.307552,
+      1779136126.327985,
+      1779136127.327738,
+      1779136128.330673,
+      1779136129.333927,
+      1779136130.337556,
+      1779136131.340545,
+      1779136132.341513,
+      1779136133.345167,
+      1779136134.348123,
+      1779136135.686059,
+      1779136136.692585,
+      1779136137.696882,
+      1779136138.700474,
+      1779136139.704258,
+      1779136140.71058,
+      1779136141.710748,
+      1779136142.712765,
+      1779136143.715537,
+      1779136144.718761,
+      1779136146.011318,
+      1779136147.012467,
+      1779136148.014871,
+      1779136149.017542,
+      1779136150.020007,
+      1779136151.023453,
+      1779136152.024034,
+      1779136153.026919,
+      1779136154.029539,
+      1779136155.354244
+    ],
+    "thread_active": [
+      373.0,
+      373.0,
+      373.0,
+      373.0,
+      375.0,
+      375.0,
+      375.0,
+      375.0,
+      375.0,
+      375.0,
+      375.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      380.0,
+      379.0,
+      379.0,
+      379.0,
+      379.0,
+      379.0,
+      379.0,
+      379.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      378.0,
+      377.0,
+      377.0,
+      377.0,
+      377.0,
+      377.0,
+      377.0,
+      377.0,
+      377.0,
+      377.0,
+      377.0,
+      377.0,
+      377.0,
+      377.0,
+      377.0,
+      377.0,
+      377.0,
+      377.0,
+      377.0,
+      377.0,
+      373.0,
+      373.0,
+      373.0,
+      376.0,
+      376.0,
+      376.0,
+      376.0,
+      376.0,
+      376.0,
+      376.0,
+      376.0,
+      376.0,
+      376.0,
+      376.0,
+      376.0,
+      376.0,
+      376.0,
+      376.0
+    ],
+    "net_time": [
+      1779135995.794558,
+      1779136000.79707,
+      1779136006.145204,
+      1779136011.146361,
+      1779136016.151725,
+      1779136021.154324,
+      1779136026.182488,
+      1779136031.188597,
+      1779136036.215324,
+      1779136041.218871,
+      1779136046.24723,
+      1779136051.257261,
+      1779136056.280486,
+      1779136061.283167,
+      1779136066.309948,
+      1779136071.312948,
+      1779136076.334917,
+      1779136081.33769,
+      1779136086.379273,
+      1779136091.386901,
+      1779136096.431955,
+      1779136101.434517,
+      1779136106.457287,
+      1779136111.462399,
+      1779136116.484943,
+      1779136121.488019,
+      1779136126.491179,
+      1779136131.495573,
+      1779136136.513923,
+      1779136141.518095,
+      1779136146.54078,
+      1779136151.542429
+    ],
+    "net_read": [
+      306192.0,
+      4649640.0,
+      15897616.0,
+      14400864.0,
+      49539808.0,
+      55131488.0,
+      52175064.0,
+      54230616.0,
+      35693232.0,
+      45258552.0,
+      51079440.0,
+      55674672.0,
+      35755544.0,
+      19988032.0,
+      18660224.0,
+      16838896.0,
+      18338352.0,
+      18948416.0,
+      19922760.0,
+      20546992.0,
+      20497248.0,
+      20286160.0,
+      19970600.0,
+      15189024.0,
+      17872464.0,
+      24536336.0,
+      33579360.0,
+      54389240.0,
+      82076904.0,
+      18311736.0,
+      400232.0,
+      367136.0
+    ],
+    "net_write": [
+      227464.0,
+      1814808.0,
+      3116792.0,
+      3448664.0,
+      6130728.0,
+      6065344.0,
+      5702880.0,
+      5903224.0,
+      3892080.0,
+      5044984.0,
+      5438072.0,
+      5997944.0,
+      5863992.0,
+      5921848.0,
+      5475640.0,
+      4726856.0,
+      5487304.0,
+      6261448.0,
+      5880560.0,
+      6015520.0,
+      6254408.0,
+      5539760.0,
+      6400632.0,
+      4645704.0,
+      5283888.0,
+      5952768.0,
+      6235208.0,
+      6029032.0,
+      6455632.0,
+      15170256.0,
+      93550888.0,
+      101956464.0
+    ],
+    "db_t": [
+      0,
+      10,
+      20,
+      30,
+      40,
+      50,
+      60,
+      70,
+      80,
+      90,
+      100,
+      110,
+      120,
+      130,
+      140,
+      150
+    ],
+    "db_count": [
+      9,
+      5,
+      5,
+      9,
+      10,
+      2,
+      2,
+      3,
+      8,
+      12,
+      7,
+      3,
+      10,
+      7,
+      4,
+      1
+    ],
+    "db_avg_ms": [
+      35.5,
+      82.8,
+      35.9,
+      78.5,
+      38.9,
+      30.3,
+      37.2,
+      41.9,
+      36.8,
+      42.3,
+      32.1,
+      82.9,
+      45.9,
+      45.6,
+      56.3,
+      154.0
+    ],
+    "api_t": [
+      0
+    ],
+    "api_count": [
+      1
+    ],
+    "api_avg_ms": [
+      24.0
+    ]
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "run_label": "may18_proj_2.jfr-20260519-112417",
+  "timestamp": "2026-05-19T11:24:17.196085Z",
+  "jfr_file": "may18_proj_2.jfr",
+  "recording": {
+    "start": "2026-05-18 20:26:33 (UTC)",
+    "duration_s": 163
+  },
+  "cpu": {
+    "jvm_avg_pct": 43.09,
+    "jvm_peak_pct": 64.25,
+    "machine_avg_pct": 74.37
+  },
+  "memory": {
+    "heap_start_gb": 3.114,
+    "heap_peak_gb": 3.542,
+    "heap_end_gb": 1.695,
+    "heap_delta_gb": 0.427,
+    "gc_count": 23,
+    "gc_young_count": 19,
+    "gc_full_count": 4,
+    "gc_total_pause_ms": 25845.4,
+    "gc_max_pause_ms": 6710.4
+  },
+  "socket": {
+    "db": {
+      "count": 97,
+      "avg_ms": 48.45,
+      "p95_ms": 154.0,
+      "max_ms": 182.6,
+      "total_ms": 4700.0
+    },
+    "api": {
+      "count": 1,
+      "avg_ms": 24.01,
+      "p95_ms": 0,
+      "total_ms": 24.0
+    }
+  },
+  "blocking": {
+    "thread_park": {
+      "count": 11181,
+      "total_ms": 36333013.2,
+      "avg_ms": 3249.53
+    },
+    "monitor_wait": {
+      "count": 168,
+      "total_ms": 1165236.6
+    }
+  },
+  "threads": {
+    "peak_active": 380,
+    "avg_active": 378.0
+  },
+  "exceptions": {
+    "total_during_recording": 227383
+  }
+}
