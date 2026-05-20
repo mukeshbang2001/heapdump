@@ -282,6 +282,8 @@ def _kv_table(rows):
 
 
 def _fmt_comp_val(metric, val):
+    if isinstance(val, str):
+        return val
     if val == 0:
         return "0"
     name = metric.lower()
@@ -320,8 +322,9 @@ def _comparison_table_html(comps):
         thr_str = f"{thr}%" if thr != "" else "—"
         status  = c["status"]
         cell_style = ("color:var(--red);font-weight:700" if status == "regression"
-                      else "color:var(--green)" if status == "improvement" else "")
-        icon = {"regression": "🔴", "improvement": "🟢", "ok": "✅", "no_baseline": "⚪"}.get(status, "")
+                      else "color:var(--green)" if status == "improvement"
+                      else "color:var(--orange)" if status == "caution" else "")
+        icon = {"regression": "🔴", "improvement": "🟢", "ok": "✅", "caution": "🟡", "no_baseline": "⚪"}.get(status, "")
         rows += (f"<tr><td>{c['metric']}</td>"
                  f"<td class='num'>{bv}</td><td class='num'>{cv}</td>"
                  f"<td class='num' style='{cell_style}'>{pct_str}</td>"
@@ -398,7 +401,9 @@ def generate_html(metrics, series, comps, regressions, improvements,
             _sr("JVM CPU avg %",      cpu.get("jvm_avg_pct", 0)),
             _sr("Heap peak (GB)",      mem.get("heap_peak_gb", 0)),
             _sr("Heap delta (GB)",     mem.get("heap_delta_gb", 0)),
-            _sr("GC pause % of run",   gc_pct),
+            {"metric": "GC pause % of run", "baseline": None,
+             "current": f"{round(gc_pause/1000,2)}s ({gc_pct}%)",
+             "change_pct": None, "threshold_pct": 30, "status": "no_baseline"},
             _sr("GC full/old count",   gc_full),
             _sr("DB reads",            db.get("count", 0)),
             _sr("DB avg latency (ms)", db.get("avg_ms", 0)),

@@ -31,6 +31,25 @@ def _pct_change(old, new):
     return round((new - old) / old * 100, 1)
 
 
+def _gc_row(current, threshold):
+    """GC pause row: no baseline comparison, status based solely on current %."""
+    mem       = (current.get("memory") or {})
+    rec       = (current.get("recording") or {})
+    pause_ms  = _safe_float(mem.get("gc_total_pause_ms", 0))
+    dur_s     = _safe_float(rec.get("duration_s", 0))
+    pct       = round(pause_ms / (dur_s * 1000) * 100, 1) if dur_s else 0
+    pause_s   = round(pause_ms / 1000, 2)
+    status    = "regression" if pct > threshold else ("caution" if pct > 12 else "ok")
+    return {
+        "metric":        "GC pause % of run",
+        "baseline":      None,
+        "current":       f"{pause_s}s ({pct}%)",
+        "change_pct":    None,
+        "threshold_pct": threshold,
+        "status":        status,
+    }
+
+
 def compare(current, baseline, thresholds):
     """
     Compare current metrics dict against baseline.
@@ -61,11 +80,16 @@ def compare(current, baseline, thresholds):
                 "change_pct": pct, "threshold_pct": threshold, "status": status}
 
     t = thresholds
+    gc_row = _gc_row(current, t.get("gc_pause", 30))
+    if gc_row["status"] == "regression":
+        regressions.append(
+            f"GC pause % of run: {gc_row['current']} (threshold {gc_row['threshold_pct']}%)"
+        )
     comps = [
         check("JVM CPU avg %",        "cpu.jvm_avg_pct",               "cpu.jvm_avg_pct",               t.get("cpu",         30)),
         check("Heap peak (GB)",        "memory.heap_peak_gb",           "memory.heap_peak_gb",           t.get("heap",        30)),
         check("Heap delta (GB)",       "memory.heap_delta_gb",          "memory.heap_delta_gb",          t.get("heap",        30)),
-        check("GC pause % of run",     "memory.gc_pause_pct",           "memory.gc_pause_pct",           t.get("gc_pause",    30)),
+        gc_row,
         check("GC full/old count",     "memory.gc_full_count",          "memory.gc_full_count",          t.get("gc_full",      0)),
         check("DB reads",              "socket.db.count",               "socket.db.count",               t.get("db_reads",    20)),
         check("DB avg latency (ms)",   "socket.db.avg_ms",              "socket.db.avg_ms",              t.get("db_latency",  30)),
