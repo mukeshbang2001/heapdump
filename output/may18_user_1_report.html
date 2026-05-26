@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>JFR Report — may18_user_1.jfr-20260522-075719</title>
+<title>JFR Report — may18_user_1.jfr-20260526-092301</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <style>
 :root {
@@ -109,24 +109,24 @@ details { background:var(--card); border:1px solid var(--border); border-radius:
 </head>
 <body>
 <header>
-  <h1>☕ JFR Performance Report &nbsp;·&nbsp; may18_user_1.jfr-20260522-075719</h1>
+  <h1>☕ JFR Performance Report &nbsp;·&nbsp; may18_user_1.jfr-20260526-092301</h1>
   <div class="meta">
     <span>📁 <strong>File:</strong> may18_user_1.jfr</span>
     <span>🕐 <strong>Start:</strong> 2026-05-18 19:35:09 (UTC)</span>
     <span>⏱ <strong>Duration:</strong> 11m 50s</span>
     <span>🏷 <strong>App package:</strong> [c.a.j.m] <span style="color:var(--muted);font-size:11px">com.atlassian.jira.migration</span></span>
-    <span style="color:var(--muted)">Generated: 2026-05-25T03:52:58Z</span>
+    <span style="color:var(--muted)">Generated: 2026-05-26T09:23:01Z</span>
   </div>
 </header>
 <main>
 
 
 <section>
-  <h2>📊 Metrics — Current Run </h2>
-  <span style='color:var(--muted);font-size:11px'>No baseline — showing current values only. Pass --baseline prev_metrics.json to enable regression detection.</span>
-  
-  
-  <table class='data-table'><thead><tr><th>Metric</th><th>Baseline</th><th>Current</th><th>Change</th><th>Threshold</th><th>Status</th></tr></thead><tbody><tr><td>JVM CPU avg %</td><td class='num'>—</td><td class='num'>17.68%</td><td class='num' style=''>—</td><td style='color:var(--muted);font-size:11px'>—</td><td>⚪ no_baseline</td></tr><tr><td>Heap peak (GB)</td><td class='num'>—</td><td class='num'>3.551 GB</td><td class='num' style=''>—</td><td style='color:var(--muted);font-size:11px'>—</td><td>⚪ no_baseline</td></tr><tr><td>Heap delta (GB)</td><td class='num'>—</td><td class='num'>1.658 GB</td><td class='num' style=''>—</td><td style='color:var(--muted);font-size:11px'>—</td><td>⚪ no_baseline</td></tr><tr><td>GC pause % of run</td><td class='num'>—</td><td class='num'>40.3s (5.7%)</td><td class='num' style=''>—</td><td style='color:var(--muted);font-size:11px'>30%</td><td>⚪ no_baseline</td></tr><tr><td>GC full/old count</td><td class='num'>—</td><td class='num'>7</td><td class='num' style=''>—</td><td style='color:var(--muted);font-size:11px'>—</td><td>⚪ no_baseline</td></tr><tr><td>DB reads</td><td class='num'>—</td><td class='num'>452</td><td class='num' style=''>—</td><td style='color:var(--muted);font-size:11px'>—</td><td>⚪ no_baseline</td></tr><tr><td>DB avg latency (ms)</td><td class='num'>—</td><td class='num'>50ms</td><td class='num' style=''>—</td><td style='color:var(--muted);font-size:11px'>—</td><td>⚪ no_baseline</td></tr><tr><td>Thread park total</td><td class='num'>—</td><td class='num'>69.3h</td><td class='num' style=''>—</td><td style='color:var(--muted);font-size:11px'>—</td><td>⚪ no_baseline</td></tr><tr><td>Monitor wait total</td><td class='num'>—</td><td class='num'>2.2h</td><td class='num' style=''>—</td><td style='color:var(--muted);font-size:11px'>—</td><td>⚪ no_baseline</td></tr><tr><td>Peak threads</td><td class='num'>—</td><td class='num'>379</td><td class='num' style=''>—</td><td style='color:var(--muted);font-size:11px'>—</td><td>⚪ no_baseline</td></tr></tbody></table>
+  <h2>📊 Metrics vs Baseline <span style='font-size:12px;font-weight:400;color:var(--muted)'>(baseline: <code>perf_v2/baselines/user_migrate_baseline.json</code> · label: <em>user_migrate_baseline</em>)</span></h2>
+  <span class="badge badge-red">7 Regression(s)</span>
+  <ul class='reg-list'><li>JVM CPU avg %: +47.3% (threshold 30%)</li><li>Heap delta (GB): +452.7% (threshold 30%)</li><li>DB avg latency (ms): +66.6% (threshold 30%)</li><li>Thread park total: +311821.1% (threshold 30%)</li><li>Monitor wait total: +201257.0% (threshold 30%)</li><li>Peak threads: +89.5% (threshold 20%)</li><li>Exceptions: +18790.7% (threshold 50%)</li></ul>
+  <details><summary>Improvements (2)</summary><ul class='imp-list'><li>DB reads: -24.7%</li><li>API avg latency (ms): -49.3%</li></ul></details>
+  <table class='data-table'><thead><tr><th>Metric</th><th>Baseline</th><th>Current</th><th>Change</th><th>Threshold</th><th>Status</th></tr></thead><tbody><tr><td>JVM CPU avg %</td><td class='num'>12.00%</td><td class='num'>17.68%</td><td class='num' style='color:var(--red);font-weight:700'>+47.3%</td><td style='color:var(--muted);font-size:11px'>30%</td><td>🔴 regression</td></tr><tr><td>Heap peak (GB)</td><td class='num'>2.800 GB</td><td class='num'>3.551 GB</td><td class='num' style=''>+26.8%</td><td style='color:var(--muted);font-size:11px'>30%</td><td>✅ ok</td></tr><tr><td>Heap delta (GB)</td><td class='num'>0.300 GB</td><td class='num'>1.658 GB</td><td class='num' style='color:var(--red);font-weight:700'>+452.7%</td><td style='color:var(--muted);font-size:11px'>30%</td><td>🔴 regression</td></tr><tr><td>GC pause % of run</td><td class='num'>—</td><td class='num'>40.3s (5.7%)</td><td class='num' style=''>—</td><td style='color:var(--muted);font-size:11px'>30%</td><td>✅ ok</td></tr><tr><td>GC full/old count</td><td class='num'>0</td><td class='num'>7</td><td class='num' style=''>—</td><td style='color:var(--muted);font-size:11px'>0%</td><td>⚪ no_baseline</td></tr><tr><td>DB reads</td><td class='num'>600</td><td class='num'>452</td><td class='num' style='color:var(--green)'>-24.7%</td><td style='color:var(--muted);font-size:11px'>20%</td><td>🟢 improvement</td></tr><tr><td>DB avg latency (ms)</td><td class='num'>30ms</td><td class='num'>50ms</td><td class='num' style='color:var(--red);font-weight:700'>+66.6%</td><td style='color:var(--muted);font-size:11px'>30%</td><td>🔴 regression</td></tr><tr><td>API avg latency (ms)</td><td class='num'>400ms</td><td class='num'>203ms</td><td class='num' style='color:var(--green)'>-49.3%</td><td style='color:var(--muted);font-size:11px'>30%</td><td>🟢 improvement</td></tr><tr><td>Thread park total</td><td class='num'>1.3m</td><td class='num'>69.3h</td><td class='num' style='color:var(--red);font-weight:700'>+311821.1%</td><td style='color:var(--muted);font-size:11px'>30%</td><td>🔴 regression</td></tr><tr><td>Monitor wait total</td><td class='num'>4.00s</td><td class='num'>2.2h</td><td class='num' style='color:var(--red);font-weight:700'>+201257.0%</td><td style='color:var(--muted);font-size:11px'>30%</td><td>🔴 regression</td></tr><tr><td>Peak threads</td><td class='num'>200</td><td class='num'>379</td><td class='num' style='color:var(--red);font-weight:700'>+89.5%</td><td style='color:var(--muted);font-size:11px'>20%</td><td>🔴 regression</td></tr><tr><td>Exceptions</td><td class='num'>5,000</td><td class='num'>944,537</td><td class='num' style='color:var(--red);font-weight:700'>+18790.7%</td><td style='color:var(--muted);font-size:11px'>50%</td><td>🔴 regression</td></tr></tbody></table>
 </section>
 
 <section>

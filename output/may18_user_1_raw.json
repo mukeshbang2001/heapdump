@@ -1,11 +1,11 @@
 {
   "metrics": {
-    "run_label": "may18_user_1.jfr-20260522-075719",
+    "run_label": "may18_user_1.jfr-20260526-092301",
     "jfr_file": "may18_user_1.jfr",
     "app_package": "com.atlassian.jira.migration",
     "migration_package": "",
     "xmx": "4096M",
-    "timestamp": "2026-05-25T03:52:58.566294Z",
+    "timestamp": "2026-05-26T09:23:01.961849Z",
     "recording": {
       "start": "2026-05-18 19:35:09 (UTC)",
       "duration_s": 710
