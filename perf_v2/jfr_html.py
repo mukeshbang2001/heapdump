@@ -520,15 +520,39 @@ def generate_html(metrics, series, comps, regressions, improvements,
         async_callout = ""
 
     # ---- Allocation tables -------------------------------------------------
+    def _alloc_weight_row(r):
+        cls  = r['class']
+        wmb  = r['weight_mb']
+        samp = r['samples']
+        if r.get('phantom'):
+            adj  = r.get('adjusted_weight_mb', 0)
+            note = r.get('phantom_note', '')
+            return (
+                f"<tr title='{note}'>"
+                f"<td class='mono'>{cls} "
+                f"<span style='color:var(--orange);font-size:10px;font-weight:700' "
+                f"title='{note}'>⚠ OUTLIER</span></td>"
+                f"<td class='num' style='color:var(--muted);text-decoration:line-through'>{wmb:.1f} MB</td>"
+                f"<td class='num'>{samp:,}</td>"
+                f"<td class='num' style='color:var(--orange)'>{adj:.1f} MB "
+                f"<span style='font-size:10px;color:var(--muted)'>(adjusted)</span></td></tr>"
+            )
+        return (
+            f"<tr><td class='mono'>{cls}</td>"
+            f"<td class='num'>{wmb:.1f} MB</td>"
+            f"<td class='num'>{samp:,}</td>"
+            f"<td></td></tr>"
+        )
+
     alloc_weight_rows = "".join(
-        f"<tr><td class='mono'>{r['class']}</td>"
-        f"<td class='num'>{r['weight_mb']:.1f} MB</td>"
-        f"<td class='num'>{r['samples']:,}</td></tr>"
-        for r in alloc.get("top_by_weight", [])
+        _alloc_weight_row(r) for r in alloc.get("top_by_weight", [])
     )
     alloc_weight_table = (
-        "<table class='data-table'><thead><tr><th>Class</th><th>Sampled MB</th><th>Samples</th></tr></thead><tbody>"
-        + (alloc_weight_rows or "<tr><td colspan=3 style='color:var(--muted)'>No data</td></tr>")
+        "<table class='data-table'><thead><tr>"
+        "<th>Class</th><th>Sampled MB</th><th>Samples</th>"
+        "<th title='For outlier rows: total minus the single dominant event. Use this number instead.'>Adjusted MB ⓘ</th>"
+        "</tr></thead><tbody>"
+        + (alloc_weight_rows or "<tr><td colspan=4 style='color:var(--muted)'>No data</td></tr>")
         + "</tbody></table>"
     )
     _app_pkg = m.get('app_package', '')
@@ -780,6 +804,7 @@ def generate_html(metrics, series, comps, regressions, improvements,
   <h2>🧠 Memory &amp; Allocation
     <span style="font-size:11px;font-weight:400;color:var(--muted)">
       ⓘ JFR samples object allocations statistically (not every allocation). "Sampled MB" is an estimate, not exact total. Callers show which app method triggered each allocation.
+      Rows marked <span style="color:var(--orange);font-weight:700">⚠ OUTLIER</span> have a first-TLAB-burst artifact: one event dominates the total — use "Adjusted MB" for those rows.
     </span>
   </h2>
   <p style="color:var(--muted);font-size:11px;margin:-8px 0 12px">
@@ -793,7 +818,7 @@ def generate_html(metrics, series, comps, regressions, improvements,
   <div class="two-col">
     <div>
       <h3>What is being allocated — by sampled MB
-        <span style="font-weight:400;font-size:11px;color:var(--muted)" title="Each row = one Java class. Sampled MB = estimated memory allocated (JFR samples statistically, not every object). Samples = number of allocation events caught. High MB + low samples = large objects. High samples + low MB = many small short-lived objects.">ⓘ</span>
+        <span style="font-weight:400;font-size:11px;color:var(--muted)" title="Each row = one Java class. Sampled MB = sum of JFR sample weights (bytes allocated on thread since last sample). Samples = number of allocation events caught. High MB + low samples = large objects or first-TLAB-burst artifact. ⚠ OUTLIER rows: a single event dominates &gt;50% of total weight — this is the first-TLAB-burst artifact (a thread's very first sample carries all weight since thread start). The raw number is misleading; use the Adjusted MB column instead.">ⓘ</span>
       </h3>
       {alloc_weight_table}
     </div>

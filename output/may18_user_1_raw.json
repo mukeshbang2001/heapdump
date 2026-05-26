@@ -1,11 +1,11 @@
 {
   "metrics": {
-    "run_label": "may18_user_1.jfr-20260519-061043",
+    "run_label": "may18_user_1.jfr-20260522-075719",
     "jfr_file": "may18_user_1.jfr",
     "app_package": "com.atlassian.jira.migration",
     "migration_package": "",
     "xmx": "4096M",
-    "timestamp": "2026-05-19T06:10:43.213578Z",
+    "timestamp": "2026-05-25T03:52:58.566294Z",
     "recording": {
       "start": "2026-05-18 19:35:09 (UTC)",
       "duration_s": 710
@@ -1053,77 +1053,104 @@
         {
           "class": "java.util.TreeMap",
           "weight_mb": 168147.6,
-          "samples": 38
+          "samples": 38,
+          "phantom": true,
+          "adjusted_weight_mb": 7.9,
+          "phantom_note": "1 event carries 168140 MB (99% of total). Likely a first-TLAB-burst artifact from thread start-up \u2014 not real allocation churn. Caller: javax.management.ImmutableDescriptor.<init>. Adjusted (excluding that 1 event): 7.9 MB."
         },
         {
           "class": "[B",
           "weight_mb": 41205.4,
-          "samples": 15153
+          "samples": 15153,
+          "phantom": false
         },
         {
           "class": "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionNode",
           "weight_mb": 26691.2,
-          "samples": 1860
+          "samples": 1860,
+          "phantom": false
         },
         {
           "class": "java.util.HashSet",
           "weight_mb": 25759.6,
-          "samples": 488
+          "samples": 488,
+          "phantom": false
         },
         {
           "class": "java.lang.String",
           "weight_mb": 16758.5,
-          "samples": 2826
+          "samples": 2826,
+          "phantom": true,
+          "adjusted_weight_mb": 1879.3,
+          "phantom_note": "1 event carries 14879 MB (88% of total). Likely a first-TLAB-burst artifact from thread start-up \u2014 not real allocation churn. Caller: java.lang.StringLatin1.newString. Adjusted (excluding that 1 event): 1879.3 MB."
         },
         {
           "class": "[Ljava.lang.Object;",
           "weight_mb": 15034.2,
-          "samples": 10915
+          "samples": 10915,
+          "phantom": false
         },
         {
           "class": "[Ljava.util.HashMap$Node;",
           "weight_mb": 14256.4,
-          "samples": 3428
+          "samples": 3428,
+          "phantom": true,
+          "adjusted_weight_mb": 2516.2,
+          "phantom_note": "1 event carries 11740 MB (82% of total). Likely a first-TLAB-burst artifact from thread start-up \u2014 not real allocation churn. Caller: java.util.HashMap.resize. Adjusted (excluding that 1 event): 2516.2 MB."
         },
         {
           "class": "java.util.stream.ReferencePipeline$Head",
           "weight_mb": 12976.3,
-          "samples": 1485
+          "samples": 1485,
+          "phantom": true,
+          "adjusted_weight_mb": 1216.2,
+          "phantom_note": "1 event carries 11760 MB (90% of total). Likely a first-TLAB-burst artifact from thread start-up \u2014 not real allocation churn. Caller: java.util.stream.StreamSupport.stream. Adjusted (excluding that 1 event): 1216.2 MB."
         },
         {
           "class": "java.util.Optional",
           "weight_mb": 11346.4,
-          "samples": 956
+          "samples": 956,
+          "phantom": true,
+          "adjusted_weight_mb": 2461.7,
+          "phantom_note": "1 event carries 8885 MB (78% of total). Likely a first-TLAB-burst artifact from thread start-up \u2014 not real allocation churn. Caller: java.util.Optional.ofNullable. Adjusted (excluding that 1 event): 2461.7 MB."
         },
         {
           "class": "org.apache.commons.pool2.impl.EvictionConfig",
           "weight_mb": 8685.1,
-          "samples": 24
+          "samples": 24,
+          "phantom": true,
+          "adjusted_weight_mb": 6.8,
+          "phantom_note": "1 event carries 8678 MB (99% of total). Likely a first-TLAB-burst artifact from thread start-up \u2014 not real allocation churn. Caller: org.apache.commons.pool2.impl.GenericObjectPool.evict. Adjusted (excluding that 1 event): 6.8 MB."
         },
         {
           "class": "org.springframework.aop.framework.AdvisedSupport$MethodCacheKey",
           "weight_mb": 8436.1,
-          "samples": 1333
+          "samples": 1333,
+          "phantom": false
         },
         {
           "class": "java.util.LinkedHashMap$Entry",
           "weight_mb": 6486.9,
-          "samples": 4549
+          "samples": 4549,
+          "phantom": false
         },
         {
           "class": "java.util.HashMap$Node",
           "weight_mb": 3402.8,
-          "samples": 5566
+          "samples": 5566,
+          "phantom": false
         },
         {
           "class": "net.sf.ehcache.Element",
           "weight_mb": 2812.1,
-          "samples": 3107
+          "samples": 3107,
+          "phantom": false
         },
         {
           "class": "java.util.ArrayList",
           "weight_mb": 2406.1,
-          "samples": 1615
+          "samples": 1615,
+          "phantom": false
         }
       ],
       "top_callers": [

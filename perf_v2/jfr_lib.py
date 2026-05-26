@@ -483,6 +483,8 @@ def analyze_execution_samples(events, app_package=""):
 def analyze_allocations(events, app_package="", migration_package=""):
     weight_by_cls = defaultdict(int)
     count_by_cls  = defaultdict(int)
+    max_weight_by_cls = defaultdict(int)   # largest single-event weight per class
+    max_caller_by_cls = defaultdict(str)   # top frame of the max-weight event
     by_caller     = defaultdict(lambda: defaultdict(int))
     caller_weight = defaultdict(int)
     mig_by_caller     = defaultdict(lambda: defaultdict(int))
@@ -500,6 +502,16 @@ def analyze_allocations(events, app_package="", migration_package=""):
         w   = int(safe_float(v.get("weight", 0)))
         weight_by_cls[cls] += w
         count_by_cls[cls]  += 1
+
+        # track max single-event weight to detect first-TLAB-burst outliers
+        if w > max_weight_by_cls[cls]:
+            max_weight_by_cls[cls] = w
+            frames = (v.get("stackTrace") or {}).get("frames", [])
+            if frames:
+                m0 = frames[0].get("method", {})
+                t0 = (m0.get("type") or {}).get("name", "") if isinstance(m0, dict) else ""
+                n0 = m0.get("name", "") if isinstance(m0, dict) else ""
+                max_caller_by_cls[cls] = f"{t0.replace('/','.')}.{n0}"
 
         frames = (v.get("stackTrace") or {}).get("frames", [])
 
@@ -529,8 +541,28 @@ def analyze_allocations(events, app_package="", migration_package=""):
                 mig_caller_weight[mig_caller]  += w
 
     def top_cls(d_weight, d_count, n):
-        return [{"class": cls, "weight_mb": round(w / 1e6, 1), "samples": d_count[cls]}
-                for cls, w in sorted(d_weight.items(), key=lambda x: -x[1])[:n]]
+        rows = []
+        for cls, w in sorted(d_weight.items(), key=lambda x: -x[1])[:n]:
+            max_w = max_weight_by_cls[cls]
+            # first-TLAB-burst: one event carries >75% of total weight for this class
+            phantom = (max_w > 0 and max_w / w > 0.75) if w > 0 else False
+            adjusted = round((w - max_w) / 1e6, 1) if phantom else None
+            row = {
+                "class":      cls,
+                "weight_mb":  round(w / 1e6, 1),
+                "samples":    d_count[cls],
+                "phantom":    phantom,
+            }
+            if phantom:
+                row["adjusted_weight_mb"] = adjusted
+                row["phantom_note"] = (
+                    f"1 event carries {max_w/1e6:.0f} MB ({max_w*100//w}% of total). "
+                    f"Likely a first-TLAB-burst artifact from thread start-up — "
+                    f"not real allocation churn. Caller: {max_caller_by_cls[cls]}. "
+                    f"Adjusted (excluding that 1 event): {adjusted} MB."
+                )
+            rows.append(row)
+        return rows
 
     def build_callers(cweight, cmap, n=15):
         rows = []

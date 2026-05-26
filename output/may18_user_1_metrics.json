@@ -1,6 +1,6 @@
 {
-  "run_label": "may18_user_1.jfr-20260519-061043",
-  "timestamp": "2026-05-19T06:10:43.213578Z",
+  "run_label": "may18_user_1.jfr-20260522-075719",
+  "timestamp": "2026-05-22T07:57:19.493680Z",
   "jfr_file": "may18_user_1.jfr",
   "recording": {
     "start": "2026-05-18 19:35:09 (UTC)",
@@ -20,15 +20,15 @@
     "gc_young_count": 35,
     "gc_full_count": 7,
     "gc_total_pause_ms": 40301.1,
-    "gc_max_pause_ms": 5873.6
+    "gc_max_pause_ms": 5873.6,
+    "gc_pause_pct": 5.68
   },
   "socket": {
     "db": {
       "count": 452,
       "avg_ms": 49.99,
       "p95_ms": 128.7,
-      "max_ms": 2555.2,
-      "total_ms": 22594.1
+      "max_ms": 2555.2
     },
     "api": {
       "count": 8,
